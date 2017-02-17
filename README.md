@@ -1,6 +1,6 @@
 # AVR_MusicBox
 This is an open source program that implemants a music box and PCM Player on AVR microcontroller.
-This program can play 3 parted score(MML: Music Macro Language), or monaural/8bit/8KHz sampled PCM.
+This program can play 3 parted score(MML: Music Macro Language), or mono/8bit/8KHz sampled PCM.
 The score or the PCM data must be stored in EEPROM that connected by I2C.  
 Details are wrote in Japanese.
 
@@ -9,7 +9,7 @@ AVR マイコンによるオルゴール演奏・PCM再生プログラムおよ�
 
 # 作者
 (c) 2017 大塚ヒロ <otsuk atmark purple.plala.or.jp>  
-ライセンスについては LICENSE.md を参照。
+ライセンスについては [LICENSE.md](/LICENSE.md) を参照。
 
 # 概要
 AVRマイコンに本プログラムを書き込み、適切な回路を組み立てることで、最大3パートまでのオルゴール楽譜、またはモノラルPCM音源を再生する事が可能。オルゴール楽譜とPCM音源の再生は排他実行となる（同時再生は不可）。  
@@ -46,11 +46,11 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 * 抵抗器、コンデンサ、電池等
 
 # 実装例
-CIRCUITS.txt を参照
+[CIRCUITS.txt](/CIRCUITS.txt) を参照
 
 # 簡易な実行方法
 ## EEPROM の準備
-sample_pcm\ および sample_mml\ ディレクトリに格納されている hex ファイルを、すべて EEPROM に書き込む。書き込み順が再生の順番になる。添付のツールを使った EEPROM への書き込み方法は、README_EEPROM_RW.txt を参照。  
+sample_pcm\ および sample_mml\ ディレクトリに格納されている hex ファイルを、すべて EEPROM に書き込む。書き込み順が再生の順番になる。添付のツールを使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。  
 参考：http://studiohiro.cocolog-nifty.com/blog/2017/01/i2c-eeprom-fdf9.html1
 
 ## ATTiny85の準備
@@ -74,11 +74,11 @@ Windows のサウンドレコーダー等を用いて録音する。
 前述の BIN2HEXGUI 等を用いて、WAVファイルを HEXファイルに変換する。なお、BIN2HEXGUI では、変換元ファイルの拡張子が wav のままでは選択できない。いったん bin に変更してから処理する必要がある。
 
 ### EEPROM への書き込み
-Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使った EEPROM への書き込み方法は、README_EEPROM_RW.txt を参照。
+Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。
 
 ## 楽譜データの作成
 ### MMLファイルの記述
-テキストエディタ等で、MMLファイルを作成する。MMLの仕様は、README_MML.txt を参照。
+テキストエディタ等で、MMLファイルを作成する。MMLの仕様は、[README_MML.txt](/README_MML.txt) を参照。
 
 ### MML2BIN ツールのコンパイル
 Eclipse 等を用いて、MML2BIN.CPP をコンパイルする。アプリケーションの種類としてはコンソール用アプリケーションとなる。リンクオプションには -static をつけた方がよい。
@@ -92,7 +92,7 @@ EXEファイルにMMLファイルをドラッグ＆ドロップしても変換�
 前述の BIN2HEXGUI 等を用いて、HEXファイルに変換する。
 
 ### EEPROM への書き込み
-Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使った EEPROM への書き込み方法は、README_EEPROM_RW.txt を参照。
+Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。
 
 ## 制御プログラムのカスタマイズ
 ### プロジェクトの準備
