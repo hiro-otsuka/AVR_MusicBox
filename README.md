@@ -50,11 +50,11 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 
 # 簡易な実行方法
 ## EEPROM の準備
-[sample_pcm\\](/sample_pcm) および [sample_mml\\](/sample_mml) ディレクトリに格納されている hex ファイルを、すべて EEPROM に書き込む。書き込み順が再生の順番になる。添付のツール([eepromwriter.ino](/tools/eepromwriter.ino))を使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。  
+[sample_pcm/](/sample_pcm/) および [sample_mml/](/sample_mml/) ディレクトリに格納されている hex ファイルを、すべて EEPROM に書き込む。書き込み順が再生の順番になる。添付のツール([eepromwriter.ino](/tools/eepromwriter.ino))を使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。  
 参考：http://studiohiro.cocolog-nifty.com/blog/2017/01/i2c-eeprom-fdf9.html
 
 ## ATTiny85の準備
-[sample_elf\\](/sample_elf) ディレクトリに格納されている ATT_85.hex を ATTiny85 に書き込む。  
+[sample_elf/](/sample_elf/) ディレクトリに格納されている ATT_85.hex を ATTiny85 に書き込む。  
 また、PLL 16MHz で動作するように Fuse を設定する。
 
 ## 回路の実装
@@ -97,7 +97,7 @@ Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込�
 ## 制御プログラムのカスタマイズ
 ### プロジェクトの準備
 Atmel Studio で新規のプロジェクトを作成し、以下の設定を行う
-* [src\\](/src) と [src_mml\\](/src_mml) ディレクトリに格納されている全ファイルを追加する。  
+* [src/](/src/) と [src_mml/](/src_mml/) ディレクトリに格納されている全ファイルを追加する。  
 ⇒[Project]->[Add Existing Item...]
 * ターゲットマイコンに ATTiny85 を選択する。  
 ⇒[Project]->[Properties]->[Device]->[Change Device...]
@@ -115,7 +115,7 @@ Atmel Studio で新規のプロジェクトを作成し、以下の設定を行�
 その他、たとえば、 BTN0 と BTN1 を使った低速シリアル通信などを実装すれば、2線で複数の楽譜・音源の再生を制御できる・・・はず。
 
 ### 楽譜データの内蔵
-EEPROM がなくても動作させたい場合、プログラムに楽譜情報を内蔵することが可能。src_mml\ ディレクトリに格納されたファイルを参考に、楽譜情報をプログラムする。
+EEPROM がなくても動作させたい場合、プログラムに楽譜情報を内蔵することが可能。[src_mml/](/src_mml/) ディレクトリに格納されたファイルを参考に、楽譜情報をプログラムする。
 * [MML_HOMusic_C3.h](/src_mml/MML_HOMusic_C3.h)  
 一応、3パート再生のサンプル音楽。
 * [MML_Test.h](/src_mml/MML_Test.h)  
