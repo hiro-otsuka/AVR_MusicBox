@@ -81,7 +81,7 @@ Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込�
 テキストエディタ等で、MMLファイルを作成する。MMLの仕様は、[README_MML.txt](/README_MML.txt) を参照。
 
 ### MML2BIN ツールのコンパイル
-Eclipse 等を用いて、[MML2BIN.CPP](/tools/MML2BIN.CPP) をコンパイルする。アプリケーションの種類としてはコンソール用アプリケーションとなる。リンクオプションには -static をつけた方がよい。
+Eclipse 等を用いて、[MML2BIN.cpp](/tools/MML2BIN.cpp) をコンパイルする。アプリケーションの種類としてはコンソール用アプリケーションとなる。リンクオプションには -static をつけた方がよい。
 
 ### MMLファイルの変換
 コマンドプロンプトを起動し、以下のコマンドを実行する。  
