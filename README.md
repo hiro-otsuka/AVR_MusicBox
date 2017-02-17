@@ -50,11 +50,11 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 
 # 簡易な実行方法
 ## EEPROM の準備
-sample_pcm\ および sample_mml\ ディレクトリに格納されている hex ファイルを、すべて EEPROM に書き込む。書き込み順が再生の順番になる。添付のツールを使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。  
-参考：http://studiohiro.cocolog-nifty.com/blog/2017/01/i2c-eeprom-fdf9.html1
+[sample_pcm\](/sample_pcm/) および [sample_mml\](/sample_mml/) ディレクトリに格納されている hex ファイルを、すべて EEPROM に書き込む。書き込み順が再生の順番になる。添付のツール([eepromwriter.ino](/tools/eepromwriter.ino))を使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。  
+参考：http://studiohiro.cocolog-nifty.com/blog/2017/01/i2c-eeprom-fdf9.html
 
 ## ATTiny85の準備
-sample_elf\ ディレクトリに格納されている ATT_85.hex を ATTiny85 に書き込む。  
+[sample_elf\](/sample_elf/) ディレクトリに格納されている ATT_85.hex を ATTiny85 に書き込む。  
 また、PLL 16MHz で動作するように Fuse を設定する。
 
 ## 回路の実装
@@ -81,7 +81,7 @@ Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込�
 テキストエディタ等で、MMLファイルを作成する。MMLの仕様は、[README_MML.txt](/README_MML.txt) を参照。
 
 ### MML2BIN ツールのコンパイル
-Eclipse 等を用いて、MML2BIN.CPP をコンパイルする。アプリケーションの種類としてはコンソール用アプリケーションとなる。リンクオプションには -static をつけた方がよい。
+Eclipse 等を用いて、[MML2BIN.CPP](/tools/MML2BIN.CPP) をコンパイルする。アプリケーションの種類としてはコンソール用アプリケーションとなる。リンクオプションには -static をつけた方がよい。
 
 ### MMLファイルの変換
 コマンドプロンプトを起動し、以下のコマンドを実行する。  
@@ -97,7 +97,7 @@ Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込�
 ## 制御プログラムのカスタマイズ
 ### プロジェクトの準備
 Atmel Studio で新規のプロジェクトを作成し、以下の設定を行う
-* src\ と src_mml\ ディレクトリに格納されている全ファイルを追加する。  
+* [src\](/src/) と [src_mml\](/src_mml/) ディレクトリに格納されている全ファイルを追加する。  
 ⇒[Project]->[Add Existing Item...]
 * ターゲットマイコンに ATTiny85 を選択する。  
 ⇒[Project]->[Properties]->[Device]->[Change Device...]
@@ -105,7 +105,7 @@ Atmel Studio で新規のプロジェクトを作成し、以下の設定を行�
 ⇒[Project]->[Properties]->[Toolchain]->[AVR/GNU C Compiler]->[Symbols]
 
 ### 設定のカスタマイズ
-設定用のヘッダファイル(config.h)を編集してカスタマイズを行う。基本はそのままで問題ない。詳細はヘッダ内のコメントを参照。ATTiny85 ではなく、多ピンの ATTiny861 を使う場合は変更が必要。
+設定用のヘッダファイル([config.h](/src/config.h))を編集してカスタマイズを行う。基本はそのままで問題ない。詳細はヘッダ内のコメントを参照。ATTiny85 ではなく、多ピンの ATTiny861 を使う場合は変更が必要。
 
 ### 動作のカスタマイズ
 メイン処理を編集し、動作をカスタマイズする。
@@ -116,9 +116,9 @@ Atmel Studio で新規のプロジェクトを作成し、以下の設定を行�
 
 ### 楽譜データの内蔵
 EEPROM がなくても動作させたい場合、プログラムに楽譜情報を内蔵することが可能。src_mml\ ディレクトリに格納されたファイルを参考に、楽譜情報をプログラムする。
-* MML_HOMusic_C3.h  
+* [MML_HOMusic_C3.h](/src_mml/MML_HOMusic_C3.h)  
 一応、3パート再生のサンプル音楽。
-* MML_Test.h  
+* [MML_Test.h](/src_mml/MML_Test.h)  
 全音階の再生、音色変化などのサンプル。音色は劇的には変わらないので、参考程度。
 
 ### マイコンへの書き込み
