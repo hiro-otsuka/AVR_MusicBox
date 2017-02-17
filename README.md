@@ -1,8 +1,8 @@
 # AVR_MusicBox
 This is an open source program that implemants a music box and PCM Player on AVR microcontroller.
-This program can play 3 parted score(MML: Music Macro Language), or mono/8bit/8KHz sampled PCM.
+This program can play 3 parted score, or mono/8bit/8KHz sampled PCM.
 The score or the PCM data must be stored in EEPROM that connected by I2C.  
-Details are wrote in Japanese.
+Details are written in Japanese.
 
 # タイトル
 AVR マイコンによるオルゴール演奏・PCM再生プログラムおよびその関連ツール
