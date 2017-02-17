@@ -1,6 +1,6 @@
 # AVR_MusicBox
-This is an open source program that implemants a music box and PCM Player by AVR microcontroller.
-This program can play 3 channeled  MML score, or monaural/8bit/8KHz sampled PCM.
+This is an open source program that implemants a music box and PCM Player on AVR microcontroller.
+This program can play 3 parted score(MML: Music Macro Language), or monaural/8bit/8KHz sampled PCM.
 The score or the PCM data must be stored in EEPROM that connected by I2C.  
 Details are wrote in Japanese.
 
@@ -54,7 +54,8 @@ sample_pcm\ および sample_mml\ ディレクトリに格納されている hex
 参考：http://studiohiro.cocolog-nifty.com/blog/2017/01/i2c-eeprom-fdf9.html1
 
 ## ATTiny85の準備
-sample_elf\ ディレクトリに格納されている ATT_85.hex を ATTiny85 に書き込む。
+sample_elf\ ディレクトリに格納されている ATT_85.hex を ATTiny85 に書き込む。  
+また、PLL 16MHz で動作するように Fuse を設定する。
 
 ## 回路の実装
 実装例を参考に回路を組み、電源ON。  

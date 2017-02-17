@@ -1,0 +1,141 @@
+;========================================
+; ATTiny85 MB 用 MML
+;
+; テストミュージックC3
+;
+;     Composed & Programmed by Hiro OTSUKA
+;========================================
+
+; ﾃﾝﾎﾟ設定
+	T128
+
+; 1小節長さ設定
+	B4/4
+
+; ﾃﾞﾌｫﾙﾄｷｰ宣言
+K{
+	
+}
+
+#{
+	V16W(12,4)K0@2O2
+	
+	e4:
+	a4.>c4<a4>c8|
+	<b4g4.d4g8|
+	a2g8f8r8g8|
+	e2.<a4|
+	>e4.c4e8d8c8|
+	d4.<b4>d4g8|
+	f4.c4d4f8|
+	e2g+2|
+	b4.>f+4e4f+8|
+	d2b4f+4|
+	e8d8c4g8e8c4|
+	d2f+8d8r8f+8|
+	c8<a8r8>c4<a4>c8|
+	d8<b8g8b4g4d8|
+	e8<b8r8>d4g4e8|
+	a2.e4|
+
+	a4.>c4<a4>c8|
+	<b4g4.d4g8|
+	a2g8f8r8g8|
+	e2.<a4|
+	>e4.c4e8d8c8|
+	d4.<b4>d4g8|
+	f4.c4d4f8|
+	e2g+2|
+	b4.>f+4e4f+8|
+	d2b4f+4|
+	e8d8c4g8e8c4|
+	d2f+8d8r8f+8|
+	c8<a8r8>c4<a4>c8|
+	d8<b8g8b4g4d8|
+	e8<b8r8>d4g4e8|
+	a2.:
+	
+	Q
+}
+
+#{
+	V16W(4,2)K0@0O1
+	
+	r4:
+	a4a8a4a4a8|
+	g4g8g4g4g8|
+	f4f8f4f4f8|
+	g4g8g4g4g8|
+	a4a8a4a4a8|
+	g4g8g4g4g8|
+	f4f8f4f4f8|
+	e4e8e4e4e8|
+	b8<b8>b8<b8>b8<b8>b8<b8|
+	>b8<b8>b8<b8>b8<b8>b8<b8|
+	>>c8<c8>c8<c8>c8<c8>c8<c8|
+	d8<d8>d8<d8>d8<d8>d8<d8|
+	>a8a8a8a4a8a4|
+	g8g8g8g4g8g4|
+	e8e8e8e4e8e4|
+	a8a8a8a4.a4|
+	
+	a4a8a4a4a8|
+	g4g8g4g4g8|
+	f4f8f4f4f8|
+	g4g8g4g4g8|
+	a4a8a4a4a8|
+	g4g8g4g4g8|
+	f4f8f4f4f8|
+	e4e8e4e4e8|
+	b8<b8>b8<b8>b8<b8>b8<b8|
+	>b8<b8>b8<b8>b8<b8>b8<b8|
+	>>c8<c8>c8<c8>c8<c8>c8<c8|
+	d8<d8>d8<d8>d8<d8>d8<d8|
+	>a8a8a8a4a8a4|
+	g8g8g8g4g8g4|
+	e8e8e8e4e8e4|
+	a8a8a8a4.:
+	
+	Q
+}
+
+#{
+	V12W(1,1)K0@0O2
+
+	r4:
+	c8e8a8e8c8e8a8e8|
+	d8g8b8g8d8g8b8g8|
+	f8a8>c8<a8f8a8>c8<a8|
+	e8g8b8g8e8g8b8e8|
+	c8e8a8e8c8e8a8e8|
+	d8g8b8g8d8g8b8g8|
+	f8a8>c8<a8f8a8>c8<a8|
+	g+8b8>e8<b8g+8b8>e8g+8|
+	f+8d8f+8d8f+8d8f+8d8|
+	d8<b8>d8<b8>d8<b8>d8<b8|
+	>e8c8e8c8e8c8e8c8|
+	d8<a8>d8<a8>d8<a8>d8<a8|
+	a4e4c4e4|
+	g4d4<b4>d4|
+	e4<b4g4b4|
+	>e8c8<a8>c8e4c4|
+	
+	c8e8a8e8c8e8a8e8|
+	d8g8b8g8d8g8b8g8|
+	f8a8>c8<a8f8a8>c8<a8|
+	e8g8b8g8e8g8b8e8|
+	c8e8a8e8c8e8a8e8|
+	d8g8b8g8d8g8b8g8|
+	f8a8>c8<a8f8a8>c8<a8|
+	g+8b8>e8<b8g+8b8>e8g+8|
+	f+8d8f+8d8f+8d8f+8d8|
+	d8<b8>d8<b8>d8<b8>d8<b8|
+	>e8c8e8c8e8c8e8c8|
+	d8<a8>d8<a8>d8<a8>d8<a8|
+	a4e4c4e4|
+	g4d4<b4>d4|
+	e4<b4g4b4|
+	>e8c8<a8>c8e4:
+
+	Q
+}
