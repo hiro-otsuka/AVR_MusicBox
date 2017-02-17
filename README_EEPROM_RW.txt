@@ -1,29 +1,29 @@
- EEPROM ‘‚«ž‚Ýƒc[ƒ‹‚ÌŽg—p•û–@ 
-¡ƒn[ƒhƒEƒFƒA‚Ì—pˆÓ
- Arduino ‚Æ EEPROM ‚ðI2C‚ÅÚ‘±‚·‚éB
- Arduino IDE ‚ð‹N“®‚µAtools\ ƒfƒBƒŒƒNƒgƒŠ‚ÉŠi”[‚³‚ê‚½ eepromwriter.ino ƒXƒPƒbƒ`‚ð Arduino ‚É‘‚«ž‚ÞB
+ï¼ï¼ï¼ï¼ EEPROM æ›¸ãè¾¼ã¿ãƒ„ãƒ¼ãƒ«ã®ä½¿ç”¨æ–¹æ³• ï¼ï¼ï¼ï¼
+â– ãƒãƒ¼ãƒ‰ã‚¦ã‚§ã‚¢ã®ç”¨æ„
+ Arduino ã¨ EEPROM ã‚’I2Cã§æŽ¥ç¶šã™ã‚‹ã€‚
+ Arduino IDE ã‚’èµ·å‹•ã—ã€tools\ ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã«æ ¼ç´ã•ã‚ŒãŸ eepromwriter.ino ã‚¹ã‚±ãƒƒãƒã‚’ Arduino ã«æ›¸ãè¾¼ã‚€ã€‚
 
-¡ƒc[ƒ‹‚ÌŽg—p
- TeraTerm“™‚ÅAƒc[ƒ‹ƒXƒPƒbƒ`‚ð‘‚«ž‚ñ‚¾ Arduino ‚ÉÚ‘±‚·‚éB
- ¦Arduino IDE ‚ÌƒVƒŠƒAƒ‹ƒ‚ƒjƒ^‚Å‚Í•¡”s‚Ìƒy[ƒXƒg“™‚ªs‚¦‚È‚¢‚Ì‚ÅATeraTerm‚ðŽg—p‚·‚éB
- ˆÈ‰º‚ÌƒRƒ}ƒ“ƒh‚Å HEX ƒtƒ@ƒCƒ‹‚Ì‘‚«ž‚Ý‚ðs‚¤B
-  h ... ƒRƒ}ƒ“ƒhƒŠƒXƒg‚ð•\Ž¦iTeraTermÚ‘±’¼Œã‚à–{ƒRƒ}ƒ“ƒh‚Å‰æ–Ê•\Ž¦‰Â”\j
-  f ... —˜—p‰Â”\‚È I2C ƒAƒhƒŒƒX‚ð•\Ž¦
-  i ... I2C ƒAƒhƒŒƒX‚ð•ÏXi‰Šú’l‚Í 0x50j
-  s ... EEPROM ‚ÌR/WƒAƒhƒŒƒX‚ðÝ’èi‰Šú’l‚Í 0x0000j
-  c ... R/WƒAƒhƒŒƒXã‚Ì 1ƒoƒCƒg•ª‚ð‘‚«Š·‚¦
-        iR/WƒAƒhƒŒƒX‚Í +1 ‚³‚ê‚é‚Ì‚Å˜A‘±ŽÀs‚ª‰Â”\j
-  w ... HEXƒtƒ@ƒCƒ‹‚ÌƒAƒhƒŒƒXi’Êí‚Í0x0000‚©‚çj‚É]‚Á‚Äƒtƒ@ƒCƒ‹‚ð‘‚«ž‚Ý
-        i‘‚«ž‚ÝŠ®—¹Žž“_‚ÌƒAƒhƒŒƒX‚ª R/WƒAƒhƒŒƒX‚É‹L˜^‚³‚ê‚éj
-  a ... R/WƒAƒhƒŒƒXˆÈ~‚ÉHEXƒtƒ@ƒCƒ‹‚Ì“à—e‚ð‘‚«ž‚Ý
-        iwƒRƒ}ƒ“ƒh‚â aƒRƒ}ƒ“ƒhŒã‚Ì’Ç‰Á‘‚«ž‚Ý‚ÉŽg—pj
-  r ... 0x0000 ‚©‚ç 1024ƒoƒCƒg•ª“Ç‚Ýž‚ñ‚Å•\Ž¦‚·‚é
-        i“Ç‚Ýž‚ÝI—¹Žž“_‚ÌƒAƒhƒŒƒX‚ª R/WƒAƒhƒŒƒX‚É‹L˜^‚³‚ê‚éj
-  n ... R/WƒAƒhƒŒƒX‚©‚ç 1024ƒoƒCƒg•ª“Ç‚Ýž‚ñ‚Å•\Ž¦‚·‚é
-        irƒRƒ}ƒ“ƒh‚â nƒRƒ}ƒ“ƒhŒã‚Ì’Ç‰Á“Ç‚Ýž‚Ý‚ÉŽg—pj
- c,w,a,r,n ‚ÌƒRƒ}ƒ“ƒh‚ÍAŽÀsŒã‚É R/WƒAƒhƒŒƒX‚ªXV‚³‚ê‚é‚½‚ßA‘‚«ž‚Ý‚Æ“Ç‚Ýž‚Ý‚Ì‘€ì‚ðŒðŒÝ‚ÉŽÀŽ{‚·‚éê‡‚ÍR/WƒAƒhƒŒƒX‚Ìó‘Ô‚É’ˆÓ‚ª•K—vB
+â– ãƒ„ãƒ¼ãƒ«ã®ä½¿ç”¨
+ TeraTermç­‰ã§ã€ãƒ„ãƒ¼ãƒ«ã‚¹ã‚±ãƒƒãƒã‚’æ›¸ãè¾¼ã‚“ã  Arduino ã«æŽ¥ç¶šã™ã‚‹ã€‚
+ â€»Arduino IDE ã®ã‚·ãƒªã‚¢ãƒ«ãƒ¢ãƒ‹ã‚¿ã§ã¯è¤‡æ•°è¡Œã®ãƒšãƒ¼ã‚¹ãƒˆç­‰ãŒè¡Œãˆãªã„ã®ã§ã€TeraTermã‚’ä½¿ç”¨ã™ã‚‹ã€‚
+ ä»¥ä¸‹ã®ã‚³ãƒžãƒ³ãƒ‰ã§ HEX ãƒ•ã‚¡ã‚¤ãƒ«ã®æ›¸ãè¾¼ã¿ã‚’è¡Œã†ã€‚
+  h ... ã‚³ãƒžãƒ³ãƒ‰ãƒªã‚¹ãƒˆã‚’è¡¨ç¤ºï¼ˆTeraTermæŽ¥ç¶šç›´å¾Œã‚‚æœ¬ã‚³ãƒžãƒ³ãƒ‰ã§ç”»é¢è¡¨ç¤ºå¯èƒ½ï¼‰
+  f ... åˆ©ç”¨å¯èƒ½ãª I2C ã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’è¡¨ç¤º
+  i ... I2C ã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’å¤‰æ›´ï¼ˆåˆæœŸå€¤ã¯ 0x50ï¼‰
+  s ... EEPROM ã®R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’è¨­å®šï¼ˆåˆæœŸå€¤ã¯ 0x0000ï¼‰
+  c ... R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ä¸Šã® 1ãƒã‚¤ãƒˆåˆ†ã‚’æ›¸ãæ›ãˆ
+        ï¼ˆR/Wã‚¢ãƒ‰ãƒ¬ã‚¹ã¯ +1 ã•ã‚Œã‚‹ã®ã§é€£ç¶šå®Ÿè¡ŒãŒå¯èƒ½ï¼‰
+  w ... HEXãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚¢ãƒ‰ãƒ¬ã‚¹ï¼ˆé€šå¸¸ã¯0x0000ã‹ã‚‰ï¼‰ã«å¾“ã£ã¦ãƒ•ã‚¡ã‚¤ãƒ«ã‚’æ›¸ãè¾¼ã¿
+        ï¼ˆæ›¸ãè¾¼ã¿å®Œäº†æ™‚ç‚¹ã®ã‚¢ãƒ‰ãƒ¬ã‚¹ãŒ R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ã«è¨˜éŒ²ã•ã‚Œã‚‹ï¼‰
+  a ... R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ä»¥é™ã«HEXãƒ•ã‚¡ã‚¤ãƒ«ã®å†…å®¹ã‚’æ›¸ãè¾¼ã¿
+        ï¼ˆwã‚³ãƒžãƒ³ãƒ‰ã‚„ aã‚³ãƒžãƒ³ãƒ‰å¾Œã®è¿½åŠ æ›¸ãè¾¼ã¿ã«ä½¿ç”¨ï¼‰
+  r ... 0x0000 ã‹ã‚‰ 1024ãƒã‚¤ãƒˆåˆ†èª­ã¿è¾¼ã‚“ã§è¡¨ç¤ºã™ã‚‹
+        ï¼ˆèª­ã¿è¾¼ã¿çµ‚äº†æ™‚ç‚¹ã®ã‚¢ãƒ‰ãƒ¬ã‚¹ãŒ R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ã«è¨˜éŒ²ã•ã‚Œã‚‹ï¼‰
+  n ... R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ã‹ã‚‰ 1024ãƒã‚¤ãƒˆåˆ†èª­ã¿è¾¼ã‚“ã§è¡¨ç¤ºã™ã‚‹
+        ï¼ˆrã‚³ãƒžãƒ³ãƒ‰ã‚„ nã‚³ãƒžãƒ³ãƒ‰å¾Œã®è¿½åŠ èª­ã¿è¾¼ã¿ã«ä½¿ç”¨ï¼‰
+ c,w,a,r,n ã®ã‚³ãƒžãƒ³ãƒ‰ã¯ã€å®Ÿè¡Œå¾Œã« R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ãŒæ›´æ–°ã•ã‚Œã‚‹ãŸã‚ã€æ›¸ãè¾¼ã¿ã¨èª­ã¿è¾¼ã¿ã®æ“ä½œã‚’äº¤äº’ã«å®Ÿæ–½ã™ã‚‹å ´åˆã¯R/Wã‚¢ãƒ‰ãƒ¬ã‚¹ã®çŠ¶æ…‹ã«æ³¨æ„ãŒå¿…è¦ã€‚
 
-¡‘‚«ž‚Ý•û–@
- w ‚Ü‚½‚Í a ƒRƒ}ƒ“ƒh‚ðŽÀsŒãAHEX ƒtƒ@ƒCƒ‹‚Ì’†g‚ðƒRƒs[•ƒy[ƒXƒg‚·‚é‚±‚Æ‚Å‘‚«ž‚Ü‚ê‚éB
- TeraTerm ‚Å‚ ‚ê‚Î•¡”s‚ðˆê“x‚Éƒy[ƒXƒg‰Â”\B
+â– æ›¸ãè¾¼ã¿æ–¹æ³•
+ w ã¾ãŸã¯ a ã‚³ãƒžãƒ³ãƒ‰ã‚’å®Ÿè¡Œå¾Œã€HEX ãƒ•ã‚¡ã‚¤ãƒ«ã®ä¸­èº«ã‚’ã‚³ãƒ”ãƒ¼ï¼†ãƒšãƒ¼ã‚¹ãƒˆã™ã‚‹ã“ã¨ã§æ›¸ãè¾¼ã¾ã‚Œã‚‹ã€‚
+ TeraTerm ã§ã‚ã‚Œã°è¤‡æ•°è¡Œã‚’ä¸€åº¦ã«ãƒšãƒ¼ã‚¹ãƒˆå¯èƒ½ã€‚
 
