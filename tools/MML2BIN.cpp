@@ -16,6 +16,7 @@
  * 更新履歴：
  *  2017/02/17 PC-98時代の C++コードを整理し、ATTiny85 のソフトと統合して公開
  *  2017/02/18 さらにコードを整理し、サブパート定義とループの機能を追加
+ *  2017/02/19 拍、テンポ、キーを途中で変更する機能を追加、複付点音符に対応
  *
  */
 
@@ -380,21 +381,24 @@ void clsFILE :: outcopy(streampos addr, int num)
 class	clsKEY	{
 	protected:
 		clsFILE*	fileio;				// ファイルIO管理
-		int			keys[OCT_NUM+1];	// キーのデフォルトを保存
-		int			slen;				// 一小節の長さ
-		int			tempo;				// 一分音符の長さ
+		int			akeys[OCT_NUM+1];	// キーのデフォルトを保存（全体初期設定）
+		int			alen;				// 一小節の長さ（全体初期設定）
+		int			atempo;				// 一分音符の長さ（全体初期設定）
+		int			keys[OCT_NUM+1];	// キーのデフォルトを保存（途中変更あり）
+		int			slen;				// 一小節の長さ（途中変更あり）
+		int			tempo;				// 一分音符の長さ（途中変更あり）
 		int			nlen;				// 現在の一小節の長さ
 	public:
 		clsKEY(clsFILE* cfile) {
 			fileio = cfile;
-			slen = tempo = 144;
+			alen = slen = tempo = atempo = 96;
 			init();
 		}
 		void	init();
 		int		tranch(char ch);
-		void	asmbl_key();
-		void	asmbl_beat();
-		void	asmbl_tempo();
+		void	asmbl_key(int isall = 1);
+		void	asmbl_beat(int isall = 1);
+		void	asmbl_tempo(int isall = 1);
 
 		// 一分音符の長さを返す
 		int		getalllen() {
@@ -402,6 +406,13 @@ class	clsKEY	{
 		}
 		// 一小節の長さを初期化する
 		void	sleninit() {
+			// 全体設定を適用
+			slen = alen;
+			tempo = atempo;
+			for (int tmp = 0; tmp < OCT_NUM; tmp ++) {
+				keys[tmp] = akeys[tmp];
+			}
+			// 今の長さは初期化
 			nlen = 0;
 		}
 		// 一小節の長さに加算する
@@ -427,8 +438,10 @@ void	clsKEY :: init()
 {
 	int i;
 
-	for (i = 0; i < OCT_NUM+1; i ++)
+	for (i = 0; i < OCT_NUM+1; i ++) {
 		keys[i] = 0;
+		akeys[i] = 0;
+	}
 	sleninit();
 }
 
@@ -451,7 +464,7 @@ int	clsKEY :: tranch(char ch)
  /*
  	 キーを読み込み
  */
-void	clsKEY :: asmbl_key()
+void	clsKEY :: asmbl_key(int isall)
 {
 	char	ch;
 	int		tmp, keytmp;
@@ -468,7 +481,15 @@ void	clsKEY :: asmbl_key()
 				keys[tmp] = 1;
 			} else if (keytmp == clsFILE::PT_MINUS) {
 				keys[tmp] = -1;
+			} else if (keytmp == clsFILE::PT_EQUAL) {
+				keys[tmp] = 0;
 			}
+		}
+	}
+	// 全体設定の場合は初期値を保存
+	if (isall) {
+		for (tmp = 0; tmp < OCT_NUM; tmp ++) {
+			akeys[tmp] = keys[tmp];
 		}
 	}
 }
@@ -476,7 +497,7 @@ void	clsKEY :: asmbl_key()
 /*
 	 拍を読み込み
 */
-void	clsKEY :: asmbl_beat()
+void	clsKEY :: asmbl_beat(int isall)
 {
 	int		tmp, tmp2;
 
@@ -491,18 +512,22 @@ void	clsKEY :: asmbl_beat()
 		fileio->asm_error(ERR_NOTLEN);
 	// 一分音符の長さから一小節の長さを算出する
 	slen = (getalllen() / tmp2) * tmp;
+	// 全体設定の場合は初期値を保存
+	if (isall) alen = slen;
 }
 
 /*
 	 テンポを読み込み
 */
-void	clsKEY :: asmbl_tempo()
+void	clsKEY :: asmbl_tempo(int isall)
 {
 	int		tmp;
 
 	if (NO_NUM == (tmp = fileio->getnum()))
 		fileio->asm_error(ERR_NOTLEN);
 	slen = tempo = tmp;
+	// 全体設定の場合は初期値を保存
+	if (isall) alen = atempo = tempo;
 }
 
 /*
@@ -515,7 +540,7 @@ class	clsPART	{
 		clsPART*	next;		// 次のデータ
 		int			nowOct;		// 現在のオクターブ
 		int			nowVol;		// 現在のボリューム
-		int			len;		// 現在のデフォルト長
+		int			deflen;		// 現在のデフォルト長
 
 		int		getlength();
 
@@ -534,7 +559,7 @@ class	clsPART	{
 			next = NULL;
 			nowOct = 0;
 			nowVol = 0;
-			len = keys->getalllen() / 4;
+			deflen = 4;
 		}
 		virtual ~clsPART() {
 			if (next != NULL) delete next;
@@ -565,10 +590,16 @@ int	clsPART :: getlength()
 		com = keys->getalllen() / com;
 	// 数字が無い場合はデフォルト長を使用
 	else
-		com = len;
-	// 付点音符の場合は 1.5倍
-	if (fileio->isfuten())
-		com = com + com/2;
+		com = keys->getalllen() / deflen;
+	// 付点音符の場合
+	if (fileio->isfuten()) {
+		// 複付点の場合は 1.75倍
+		if (fileio->isfuten())
+			com = com + com/2 + com/4;
+		// 付点音符の場合は 1.5倍
+		else
+			com = com + com/2;
+	}
 	// タイが続く場合は加算を継続
 	while (fileio->isbeki()) {
 		// 数字を取得
@@ -595,9 +626,15 @@ int	clsPART :: getlength()
 		}
 		// 長さを算出する
 		tmp = keys->getalllen() / tmp;
-		// 付点音符の場合は1.5倍
-		if (fileio->isfuten())
-			tmp = tmp + tmp/2;
+		// 付点音符の場合
+		if (fileio->isfuten()) {
+			// 複付点の場合は 1.75倍
+			if (fileio->isfuten())
+				tmp = tmp + tmp/2 + tmp/4;
+			// 付点音符の場合は 1.5倍
+			else
+				tmp = tmp + tmp/2;
+		}
 		// 加算する
 		com += tmp;
 	}
@@ -644,13 +681,11 @@ void	clsPART :: asmblpt(char ch)
 	// 小節の終わり（チェックなし）
 	else if (ch == ':')
 		keys->slencheck(1);
-	// デフォルト長の設定
+	// デフォルト長の設定（付点は指定不可）
 	else if (ch == 'L') {
 		if ((num1 = fileio->getnum()) == NO_NUM)
 			fileio->asm_error(ERR_NOTNUM);
-		len = keys->getalllen() / num1;
-		if (fileio->isfuten())
-			len = len + len/2;
+		deflen = num1;
 	}
 	// ボリューム設定コマンド（増減可能）
 	else if (ch == 'V') {
@@ -698,8 +733,11 @@ void	clsPART :: asmblpt(char ch)
 			fileio->asm_error(ERR_NOTNUM2);
 		fileio->writemu(num1);
 		fileio->writemu(CMD_DIVWT);
+		if (fileio->getd() != ')')
+			fileio->asm_error(ERR_NOTNUM2);
+
 	}
-	// キー設定コマンド
+	// オフセット設定コマンド
 	else if (ch == 'K') {
 		writenum();
 		fileio->writemu(CMD_KEY);
@@ -708,6 +746,18 @@ void	clsPART :: asmblpt(char ch)
 	else if (ch == '@') {
 		writenum();
 		fileio->writemu(CMD_TYPE);
+	}
+	// 移調コマンド
+	else if (ch == 'I') {
+		keys->asmbl_key(0);
+	}
+	// 拍の変更
+	else if (ch == 'H') {
+		keys->asmbl_beat(0);
+	}
+	// テンポの変更
+	else if (ch == 'T') {
+		keys->asmbl_tempo(0);
 	}
 	// 演奏終了
 	else if (ch == 'Q') {
@@ -911,11 +961,11 @@ void	clsMUSIC :: asmbl(char ch)
 		keys->asmbl_tempo();
 	}
 	// キー設定
-	else if (ch == 'K') {
+	else if (ch == 'K' || ch == 'I') {
 		keys->asmbl_key();
 	}
 	// 拍の設定
-	else if (ch == 'B') {
+	else if (ch == 'B' || ch == 'H') {
 		keys->asmbl_beat();
 	}
 	// サブパート
