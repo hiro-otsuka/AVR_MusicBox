@@ -17,6 +17,7 @@
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *                                  音色の選択機能を追加
  *  2017/02/18 構成変更(Hiro OTSUKA) 鋸波を追加
+ *  2017/02/19 機能改善(Hiro OTSUKA) 周波数変更時のプチノイズを低減
  *
  */
 
@@ -343,10 +344,10 @@ void PwmSoundSin_StartWave(uint8_t channel, uint16_t InHz, uint16_t PhaseMax, ui
 		PwmSoundSin_Channel[channel].PhaseMax = 0;
 		PwmSoundSin_Channel[channel].IndexStep = 0;
 		PwmSoundSin_Channel[channel].VolMst = 0;
+		// プチノイズを防止するため停止時以外は今の波形オフセットを保持する
+		PwmSoundSin_Channel[channel].PhaseNow = 0;
+		PwmSoundSin_Channel[channel].IndexNow = 0;
 	}
-
-	PwmSoundSin_Channel[channel].PhaseNow = 0;
-	PwmSoundSin_Channel[channel].IndexNow = 0;
 	PwmSoundSin_Channel[channel].Type = Type;
 }
 
