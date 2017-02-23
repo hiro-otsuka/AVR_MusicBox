@@ -14,6 +14,7 @@
  * 更新履歴：
  *  2017/01/29 新規作成(Hiro OTSUKA)
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
+ *  2017/02/25 機能改善(Hiro OTSUKA) MMLとWAVを分離して再生できるよう機能改善
  *
  */
 
@@ -24,12 +25,10 @@
 #include "PWM_EEPROM_Play.h"
 
 //楽譜情報を include（長くなるため分離）
-#include "MML_HOMusic_C3.h"
 #include "MML_Test.h"
 
 int main(void)
 {
-	uint8_t MusicMax = 0;
 	uint8_t MusicNum = 0;
 	uint8_t VoiceNum = 0;
 	
@@ -44,12 +43,10 @@ int main(void)
 	PWM_PCM_MB_Init();
 	
 	//楽譜情報を登録する
-	PWM_PCM_MB_MEM_SetScore(0, (void(*)())MML_HOMusic_C3_Setup);
-	PWM_PCM_MB_MEM_SetScore(1, (void(*)())MML_Test_Setup);
+	PWM_PCM_MB_MEM_SetScore(0, (void(*)())MML_Test_Setup);
 	
 	//EEPROM のファイル数を得る
 	EEPROM_Init();
-	MusicMax = EEPROM_Files;
 	
 	sei();
 	while (1) {
@@ -65,22 +62,40 @@ int main(void)
 		//完全にキー押下が解除されるまで待つ
 		PIN_Control_WaitKeyOff(0);
 
+//
+/*
+		//内蔵データを順に再生するモード========================
 		//BTN0 が押された場合は EEPROM を逆に再生する
 		if (PIN_Control_Key == (1<<0)) {
 			PIN_Control_Key = 0;
-			if (VoiceNum == 0) VoiceNum = MusicMax - 1;	// 0 に達したら最大数に戻す
+			if (VoiceNum == 0) VoiceNum = EEPROM_Files[PWM_PCMPLAY_ANY] - 1;	// 0 に達したら最大数に戻す
 			else VoiceNum --;
-			EEPROM_Play(VoiceNum);
+			EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum);
 		//BTN1 が押された場合は EEPROM を順に再生する
 		} else if(PIN_Control_Key == (1<<1)) {
 			PIN_Control_Key = 0;
-			EEPROM_Play(VoiceNum ++);
-			if (VoiceNum >= MusicMax) VoiceNum = 0;	//最大数に達したら 0 に戻す
-		//BTN0とBTN1 が押された場合は 内蔵楽譜を順に再生する
+			EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum ++);
+			if (VoiceNum >= EEPROM_Files[PWM_PCMPLAY_ANY]) VoiceNum = 0;	//最大数に達したら 0 に戻す
+//
+*/
+// /*
+		//内蔵データを MMLと PCM に分けて再生するモード=========
+		//BTN0 が押された場合は PCM を順に再生する
+		if (PIN_Control_Key == (1<<0) && EEPROM_Files[PWM_PCMPLAY_PCM] > 0) {
+			PIN_Control_Key = 0;
+			EEPROM_Play(PWM_PCMPLAY_PCM, VoiceNum ++);
+			if (VoiceNum >= EEPROM_Files[PWM_PCMPLAY_PCM]) VoiceNum = 0;	//最大数に達したら 0 に戻す
+		//BTN1 が押された場合は MML を順に再生する
+		} else if(PIN_Control_Key == (1<<1) && EEPROM_Files[PWM_PCMPLAY_MML] > 0) {
+			PIN_Control_Key = 0;
+			EEPROM_Play(PWM_PCMPLAY_MML, MusicNum ++);
+			if (MusicNum >= EEPROM_Files[PWM_PCMPLAY_MML]) MusicNum = 0;	//最大数に達したら 0 に戻す
+// */
+
+		//BTN0とBTN1 が押された場合は 内蔵楽譜を再生する
 		} else if(PIN_Control_Key == ((1<<0)|(1<<1))) {
 			PIN_Control_Key = 0;
-			PWM_PCM_MB_MEM_Play(MusicNum ++);
-			if (MusicNum >= 2) MusicNum = 0;
+			PWM_PCM_MB_MEM_Play(0);
 		//どれでもなければキー押下を解除
 		} else {
 			PIN_Control_Key = 0;
