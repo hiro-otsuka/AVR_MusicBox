@@ -15,6 +15,7 @@
  * 更新履歴：
  *  2017/01/29 新規作成(Hiro OTSUKA)
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
+ *  2017/02/25 機能追加(Hiro OTSUKA) キー状態を確認する機能を追加
  *
  */
 
@@ -201,6 +202,40 @@ void PIN_Control_WaitKeyOn(uint8_t waitmask)
 		else WaitCount ++;
 		_delay_ms(1);
 	}
+}
+
+//=============================
+//BTNのその瞬間の押下状態を調べる
+//	戻値：BTNの押下状態（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
+volatile uint8_t PIN_Control_GetKey()
+{
+	uint8_t KeyNow = 0;
+	
+#if defined(PIN_BTN0_DDR)
+	if (PIN_BTN0_PIN == 0) KeyNow |= 1 << 0;
+#endif
+#if defined(PIN_BTN1_DDR)
+	if (PIN_BTN1_PIN == 0) KeyNow |= 1 << 1;
+#endif
+#if defined(PIN_BTN2_DDR)
+	if (PIN_BTN2_PIN == 0) KeyNow |= 1 << 2;
+#endif
+#if defined(PIN_BTN3_DDR)
+	if (PIN_BTN3_PIN == 0) KeyNow |= 1 << 3;
+#endif
+#if defined(PIN_BTN4_DDR)
+	if (PIN_BTN4_PIN == 0) KeyNow |= 1 << 4;
+#endif
+#if defined(PIN_BTN5_DDR)
+	if (PIN_BTN5_PIN == 0) KeyNow |= 1 << 5;
+#endif
+#if defined(PIN_BTN6_DDR)
+	if (PIN_BTN6_PIN == 0) KeyNow |= 1 << 6;
+#endif
+#if defined(PIN_BTN7_DDR)
+	if (PIN_BTN7_PIN == 0) KeyNow |= 1 << 7;
+#endif
+	return KeyNow;
 }
 
 //=============================

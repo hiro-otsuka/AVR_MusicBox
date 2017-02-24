@@ -37,6 +37,7 @@
  * 更新履歴：
  *  2017/01/29 新規作成(Hiro OTSUKA)
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
+ *  2017/02/25 機能追加(Hiro OTSUKA) キー状態を確認する機能を追加
  *
  */
 
@@ -261,6 +262,10 @@ void PIN_Control_WaitKeyOff(uint8_t );
 //BTNがすべて押されるのを待つ
 //	引数：対象マスク 0=Wait（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
 void PIN_Control_WaitKeyOn(uint8_t );
+
+//BTNのその瞬間の押下状態を調べる
+//	戻値：BTNの押下状態（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
+volatile uint8_t PIN_Control_GetKey();
 
 //外部のオペアンプをON/OFF制御(ピンが有効な場合)
 //	引数：0=OFF/1=ON
