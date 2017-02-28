@@ -15,6 +15,7 @@
  *  2017/01/29 新規作成(Hiro OTSUKA)
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *  2017/02/25 機能改善(Hiro OTSUKA) MMLとWAVを分離して再生するモードとシリアル通信指定のモードを追加
+ *  2017/02/26 機能追加(Hiro OTSUKA) Init時にEEPROMからパラメータを読み込む機能を追加
  *
  */
 
@@ -128,10 +129,10 @@ int main(void)
 			PIN_Control_Key = 0;
 			EEPROM_Play(PWM_PCMPLAY_MML, MusicNum ++);
 			if (MusicNum >= EEPROM_Files[PWM_PCMPLAY_MML]) MusicNum = 0;	//最大数に達したら 0 に戻す
-		//BTN0とBTN1 が押された場合は 0 番目を再生する
+		//BTN0とBTN1 が押された場合はパラメータ0 の値（通常は0）番目を再生する
 		} else if(PIN_Control_Key == ((1<<0)|(1<<1))) {
 			PIN_Control_Key = 0;
-			EEPROM_Play(PWM_PCMPLAY_ANY, 0);
+			EEPROM_Play(PWM_PCMPLAY_ANY, EEPROM_Params[0]);
 #elif defined _MODE_DEBUG
 		//内蔵データをデバッグ再生するモード====================
 		//BTN0 が押された場合は 内蔵楽譜 を再生する

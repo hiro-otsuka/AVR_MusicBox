@@ -36,7 +36,7 @@
 //#define _HIGH_RESO
 
 //********** 性能定義 **********//
-#define MUSIC_SCORES			8		//登録する楽譜の最大数（8Kのメモリでは4曲程度が限界⇒EEPROM読込再生に対応したため影響は小）
+#define MUSIC_SCORES			4		//登録する楽譜の最大数（8Kのメモリでは4曲程度が限界⇒EEPROM読込再生に対応したため影響は小）
 #define	MUSIC_SCORE_CHANNELS	3		//チャネル数（CPU性能に依存. ATTiny85 16MHz で MUSIC_PLAY_FREQ=16000の場合、3が最大）
 #define MUSIC_PLAY_FREQ			16000	//SINE波再生の解像度（8000にすると高音が歪む）
 #define PWM_SOUND_FREQ			32000	//PCM再生解像度（8000,16000,32000が選択可能）

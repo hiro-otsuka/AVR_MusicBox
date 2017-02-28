@@ -14,6 +14,7 @@
  * 更新履歴：
  *  2017/02/17 新規作成(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *  2017/02/25 機能改善(Hiro OTSUKA) MMLとWAVを分離して再生できるよう機能改善
+ *  2017/02/26 機能追加(Hiro OTSUKA) Init時にEEPROMからパラメータを読み込む機能を追加
  *
  */
 
@@ -28,6 +29,8 @@ uint8_t EEPROM_Search(uint8_t, uint8_t*, uint8_t* );
 //********** 変数定義 **********//
 // EEPROM に保存されているファイルの数（種類別）
 volatile uint8_t EEPROM_Files[PWM_PCMPLAY_TYPES];
+// EEPROM に保存されているパラメータを保存
+volatile uint8_t EEPROM_Params[PWM_PCMPLAY_PARAMS];
 
 uint8_t	EEPROM_File[PWM_PCMPLAY_TYPES][EEPROM_I2C_MAX];
 
@@ -57,17 +60,18 @@ void EEPROM_PlayAt(uint8_t slaveaddr, uint8_t type, uint8_t count)
 		} while(USI_TWI_Master_tranCommit() && TimeOut < PWM_PCMPLAY_TIMEOUT);
 	
 		//WAVフォーマットのヘッダファイル読み込み
-		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//'RIFF' or 'MMLD'
-		PlayMode = USI_TWI_Master_receive();		// 'R' or 'M'
+		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//'RIFF' or 'MMLD' or 'PARM'
+		PlayMode = USI_TWI_Master_receive();		// 'R' or 'M' or 'P'
 		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//Size(below)
 		//ファイルのサイズを得る
 		for (uint8_t i = 0; i < 4; i++) {
 			inSize >>= 8;
 			inSize += ((uint32_t)USI_TWI_Master_receive() << 24);
 		}
-		//対象ファイルじゃない場合はループを抜けない
-		if (type == PWM_PCMPLAY_MML && PlayMode != 'M') count ++;
-		if (type == PWM_PCMPLAY_PCM && PlayMode != 'R') count ++;
+		//対象ファイルじゃない場合はループを抜けない（'P'は常になかったことにする）
+		if (PlayMode == 'P') count++;
+		else if (type == PWM_PCMPLAY_MML && PlayMode != 'M') count ++;
+		else if (type == PWM_PCMPLAY_PCM && PlayMode != 'R') count ++;
 	} while(count --);
 	
 	//フォーマットを確認
@@ -87,6 +91,7 @@ void EEPROM_Init()
 {
 	uint8_t mmlnum, pcmnum;
 	
+	for (uint8_t i = 0; i < PWM_PCMPLAY_PARAMS; i++ ) EEPROM_Params[i] = 0;
 	for (uint8_t i = 0; i < PWM_PCMPLAY_TYPES; i++ ) EEPROM_Files[i] = 0;
 	for (uint8_t i = 0; i < EEPROM_I2C_MAX; i++) {
 		uint8_t num = EEPROM_Search(0x50 + i, &mmlnum, &pcmnum);
@@ -124,7 +129,6 @@ uint8_t EEPROM_Search(uint8_t slaveaddr, uint8_t* mmlnum, uint8_t* pcmnum)
 	uint8_t PlayMode = 0;
 	uint16_t StartAddr = 0;
 	uint32_t inSize = 0;
-	int Files = 0;
 	int TimeOut = 0;
 	
 	*mmlnum = 0;
@@ -147,18 +151,25 @@ uint8_t EEPROM_Search(uint8_t slaveaddr, uint8_t* mmlnum, uint8_t* pcmnum)
 		if (TimeOut >= PWM_PCMPLAY_TIMEOUT) return 0;
 		
 		//WAVフォーマットのヘッダファイル読み込み
-		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//'RIFF' or 'MMLD'
-		PlayMode = USI_TWI_Master_receive();		// 'R' or 'M'
-		if (PlayMode == 'R') (*pcmnum) ++;
-		else if (PlayMode == 'M') (*mmlnum) ++;
-		else return Files;
-		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//Size(below)
-		
+		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//'RIFF' or 'MMLD' or 'PARM'
+		PlayMode = USI_TWI_Master_receive();		// 'R' or 'M' or 'P'
+		//どれでもない場合は終了
+		if (PlayMode != 'R' && PlayMode != 'M' && PlayMode != 'P') return (*mmlnum) + (*pcmnum);
 		//ファイルのサイズを得る
+		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//Size(below)
 		for (uint8_t i = 0; i < 4; i++) {
 			inSize >>= 8;
 			inSize += ((uint32_t)USI_TWI_Master_receive() << 24);
 		}
-		Files ++;
+		//種類ごとに対象のファイルをカウントアップする
+		if (PlayMode == 'R') (*pcmnum) ++;
+		else if (PlayMode == 'M') (*mmlnum) ++;
+		else {
+			//パラメータを見つけた場合はカウントせず、その場で読み込む
+			USI_TWI_Master_receiveFrom(slaveaddr, inSize);
+			for (uint8_t i = 0; i < inSize; i++) {
+				EEPROM_Params[i] = USI_TWI_Master_receive();
+			}
+		}
 	}
 }
