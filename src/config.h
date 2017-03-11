@@ -25,7 +25,7 @@
 //********** 機能定義 **********//
 //演奏中にPLAYINGピンがLowになる機能を有効化（オーディオアンプのCEピンへの接続を想定）
 //	※ATTiny85の場合：ピン数が足りないためリセット無効化が必要＆BTN2/LED2と競合
-//#define _PLAYING_ENABLE
+#define _PLAYING_ENABLE
 
 //PCM情報が間に合わない場合に PWM_DEBUG_OUT に 1 を出力する機能を有効化
 //	※ATTiny85の場合：BTN1/LED1 と競合

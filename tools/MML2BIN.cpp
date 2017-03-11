@@ -17,6 +17,7 @@
  *  2017/02/17 PC-98時代の C++コードを整理し、ATTiny85 のソフトと統合して公開
  *  2017/02/18 さらにコードを整理し、サブパート定義とループの機能を追加
  *  2017/02/19 拍、テンポ、キーを途中で変更する機能を追加、複付点音符に対応
+ *  2017/03/11 GUIからの呼び出しに対応するため出力方法を変更
  *
  */
 
@@ -88,12 +89,12 @@ namespace commonfunc {
 	// 出力完了を表示
 	void	complete(string filename)
 	{
-		cerr << "  " << filename << ".BIN ファイルを出力しました." << endl;
+		cout << "  " << filename << ".BIN ファイルを出力しました." << endl;
 	}
 	// 致命的エラーを表示
 	void	error(string txt )
 	{
-		cerr << txt << endl;
+		cout << txt << endl;
 		exit(2);
 	}
 }
@@ -418,6 +419,9 @@ class	clsKEY	{
 		// 一小節の長さに加算する
 		void	slenadd(int len) {
 			nlen += len;
+		}
+		int		slenget() {
+			return nlen;
 		}
 		// 一小節の長さをチェックする（エラー出力が無い指定も可能）
 		void	slencheck(int noerr = 0) {
@@ -877,6 +881,7 @@ void	clsCHAN :: asmbl(int depth)
 {
 	// 出力開始位置を保存
 	streampos postmp = fileio->getoutaddr();
+	int startlen = keys->slenget();
 	// トップレベルの場合、サイズを仮記入しておく
 	if (depth == 0) {
 		fileio->writemuw(0);
@@ -920,6 +925,8 @@ void	clsCHAN :: asmbl(int depth)
 			fileio->asm_error(ERR_LOOPNONUM);
 		// ループの指定回数分コピーする（1回分は出力済みなので -1）
 		fileio->outcopy(postmp, loopnum - 1);
+		// 小節内のループに対応するため長さを加算（小節が閉じられていないと矛盾）
+		keys->slenadd((keys->slenget() - startlen) * (loopnum - 1));
 	}
 }
 
