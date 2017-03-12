@@ -26,18 +26,18 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 * 楽譜データやWAVファイルをHEXファイルに変換するためのソフト  
 例）BIN2HEXGUI(https://synapse.kyoto/tips/LPC1114/page001.html)
 * EEPROM に HEXファイルを書き込むためのソフト  
- ※AVR_MB_Writer(https://github.com/hiro-otsuka/AVR_MB_Writer)を使用する場合は不要
-例）TeraTerm(https://ttssh2.osdn.jp/)
+例）TeraTerm(https://ttssh2.osdn.jp/)  
+ ※[AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) を使用する場合は不要
 * MML変換ツールコンパイル用 C++ 開発環境  
- ※AVR_MB_Writer(https://github.com/hiro-otsuka/AVR_MB_Writer)を使用する場合は不要
-例）Eclipse + CDT(http://mergedoc.osdn.jp/)
+例）Eclipse + CDT(http://mergedoc.osdn.jp/)  
+ ※[AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) を使用する場合は不要
 
 ## 必要ハードウェア（開発用）
 * 前述のソフトウェアが動作するパソコン  
 例）Windows 7,8,10 の PCなど
 * AVRマイコンにプログラムを書き込むためのハード  
-例）AVRISP mk2等
- ※AVR_MB_Writer(https://github.com/hiro-otsuka/AVR_MB_Writer)およびその自作回路を使用する場合は不要
+例）AVRISP mk2等  
+ ※[AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) およびその自作回路を使用する場合は不要
 * EEPROM にHEXファイルを書き込むためのハード  
 例）Arduino および自作回路等
 
@@ -133,6 +133,9 @@ AVRISP 等を用いて、AVRマイコンにプログラムを書き込む。
 # 変更履歴
 
 最新確認済みマイコン：ATTiny85, ATTiny861
+
+* 2017/03/12  以下の更新を行った  
+ 1. [AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) との連携のための調整を実施
 
 * 2017/02/18  以下の更新を行った  
  1. MMLの仕様に、サブパート定義とループの機能を追加
