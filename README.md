@@ -19,15 +19,17 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 
 # 使用条件
 ## 必要ソフトウェア（開発用）
-* AVRマイコン用コンパイラ  
+* AVRマイコン用コンパイラ
 例）Atmel Studio 7(http://www.atmel.com/ja/jp/tools/atmelstudio.aspx)
 * WAVファイル(PCMモノラル/8bit/8KHz)を作成するためのソフト  
 例）spwave(http://www-ie.meijo-u.ac.jp/~banno/spLibs/spwave/index-j.html)
 * 楽譜データやWAVファイルをHEXファイルに変換するためのソフト  
 例）BIN2HEXGUI(https://synapse.kyoto/tips/LPC1114/page001.html)
 * EEPROM に HEXファイルを書き込むためのソフト  
+ ※AVR_MB_Writer(https://github.com/hiro-otsuka/AVR_MB_Writer)を使用する場合は不要
 例）TeraTerm(https://ttssh2.osdn.jp/)
 * MML変換ツールコンパイル用 C++ 開発環境  
+ ※AVR_MB_Writer(https://github.com/hiro-otsuka/AVR_MB_Writer)を使用する場合は不要
 例）Eclipse + CDT(http://mergedoc.osdn.jp/)
 
 ## 必要ハードウェア（開発用）
@@ -35,6 +37,7 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 例）Windows 7,8,10 の PCなど
 * AVRマイコンにプログラムを書き込むためのハード  
 例）AVRISP mk2等
+ ※AVR_MB_Writer(https://github.com/hiro-otsuka/AVR_MB_Writer)およびその自作回路を使用する場合は不要
 * EEPROM にHEXファイルを書き込むためのハード  
 例）Arduino および自作回路等
 
@@ -46,7 +49,7 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 * 抵抗器、コンデンサ、電池等
 
 # 実装例
-[CIRCUITS.txt](/CIRCUITS.txt) を参照
+AVR_MusicBox および AVR_MB_Writer の回路図は[circuits](/circuits) を参照
 
 # 簡易な実行方法
 ## EEPROM の準備
