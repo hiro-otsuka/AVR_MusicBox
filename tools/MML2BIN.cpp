@@ -195,6 +195,9 @@ class	clsFILE	{
 		void	asm_warning(string txt) {
 			cout << "  警告<" << inname << ">line " << linenum << " : " << txt << endl;
 		}
+		void	asm_warning(string txt, int slen, int nlen) {
+			cout << "  警告<" << inname << ">line " << linenum << " : " << txt << "(" << nlen << "/" << slen << ")" << endl;
+		}
 		// 書き出しファイルの位置を返す
 		streampos	getoutaddr() {
 			return outmu.tellp();
@@ -426,7 +429,7 @@ class	clsKEY	{
 		// 一小節の長さをチェックする（エラー出力が無い指定も可能）
 		void	slencheck(int noerr = 0) {
 			if (nlen != slen && noerr == 0)
-				fileio->asm_warning(WAR_NOTLEN);
+				fileio->asm_warning(WAR_NOTLEN, slen, nlen);
 			nlen = 0;
 		}
 		// キーのデフォルトを得る
