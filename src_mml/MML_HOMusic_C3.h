@@ -28,9 +28,9 @@ static void MML_HOMusic_C3_Setup()
 	#define N_KEY	0		//ÉLÅ[ïœçX
 
 	const static uint16_t Buff1[] PROGMEM = {
-		M_CTRL(C_VOL, 16),
+		M_CTRL(C_VOL, 6),
 		M_CTRL(C_DIVST, 12),
-		M_CTRL(C_DIVWT, 4),
+		M_CTRL(C_DIVWT, 12),
 		M_CTRL(C_OFF, N_KEY+12),
 		M_CTRL(C_TYPE, 2),
 		
@@ -73,9 +73,9 @@ static void MML_HOMusic_C3_Setup()
 	};
 
 	const static uint16_t Buff2[] PROGMEM = {
-		M_CTRL(C_VOL, 16),
+		M_CTRL(C_VOL, 5),
 		M_CTRL(C_DIVST, 4),
-		M_CTRL(C_DIVWT, 2),
+		M_CTRL(C_DIVWT, 6),
 		M_CTRL(C_OFF, N_KEY),
 		
 		M_REST(N_LEN/4),
@@ -125,9 +125,9 @@ static void MML_HOMusic_C3_Setup()
 	};
 
 	const static uint16_t Buff3[] PROGMEM = {
-		M_CTRL(C_VOL, 12),
+		M_CTRL(C_VOL, 4),
 		M_CTRL(C_DIVST, 1),
-		M_CTRL(C_DIVWT, 1),
+		M_CTRL(C_DIVWT, 3),
 		M_CTRL(C_OFF, N_KEY+12),
 
 		M_REST(N_LEN/4),

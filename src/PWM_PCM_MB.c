@@ -18,6 +18,7 @@
  *                                  音色の選択機能を追加
  *  2017/02/18 構成変更(Hiro OTSUKA) 鋸波を追加
  *  2017/02/19 機能改善(Hiro OTSUKA) 周波数変更時のプチノイズを低減
+ *  2017/03/24 機能変更(Hiro OTSUKA) 最大チャンネル数による音量調整を削除しMMLの音量で調整するよう変更
  *
  */
 
@@ -395,7 +396,7 @@ void MusicScore_PlayMain()
 	while(PWM_PCM_Playing) {
 		uint8_t PwmSoundHeadTmp = (PwmSoundHead + 1) & (PWM_SOUND_MAX_BUFF - 1);
 		if (PwmSoundHeadTmp != PwmSoundTail) {
-			uint16_t ValNext = 0;
+			uint16_t ValNext = 32768;
 			for (uint8_t channel = 0; channel < MUSIC_SCORE_CHANNELS; channel ++) {
 				if (PwmSoundSin_Channel[channel].IndexStep != 0) {
 					uint8_t IndexTmp = (uint8_t)(PwmSoundSin_Channel[channel].IndexNow >> 8);
@@ -411,22 +412,15 @@ void MusicScore_PlayMain()
 					} else if (Vols == 0) {
 						ValTmp = 0;
 					} else {
-						ValTmp =(Vols & 0b01000 ? ValTmp >> 1 : 0) +
-						(Vols & 0b00100 ? ValTmp >> 2 : 0) +
-						(Vols & 0b00010 ? ValTmp >> 3 : 0) +
-						(Vols & 0b00001 ? ValTmp >> 4 : 0);
+						uint16_t ValDiv = 0;
+						if (Vols & 0b01000) ValDiv = ValTmp >> 1;
+						if (Vols & 0b00100) ValDiv += ValTmp >> 2;
+						if (Vols & 0b00010) ValDiv += ValTmp >> 3;
+						if (Vols & 0b00001) ValDiv += ValTmp >> 4;
+						ValTmp = ValDiv;
 					}
-					if (IndexTmp <= PWM_SOUND_SIN_DATA) ValTmp += 32768;
-					else ValTmp = 32768 - ValTmp;
-#if MUSIC_SCORE_CHANNELS == 1
-#elif MUSIC_SCORE_CHANNELS == 2
-					ValTmp >>= 1;
-#elif MUSIC_SCORE_CHANNELS == 3
-					ValTmp >>= 2;
-#elif MUSIC_SCORE_CHANNELS == 4
-					ValTmp >>= 2;
-#endif
-					ValNext += ValTmp;
+					if (IndexTmp <= PWM_SOUND_SIN_DATA) ValNext += ValTmp;
+					else ValTmp = ValNext -= ValTmp;
 					PwmSoundSin_Channel[channel].PhaseNow ++;
 					if (PwmSoundSin_Channel[channel].PhaseNow >= PwmSoundSin_Channel[channel].PhaseMax) {
 						PwmSoundSin_Channel[channel].PhaseNow = 0;
