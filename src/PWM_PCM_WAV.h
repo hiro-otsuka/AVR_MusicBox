@@ -24,11 +24,11 @@
 #include "PWM_PCMPlay.h"
 
 //********** 定数定義 **********//
-#define PWM_PCMPLAY_READSIZE	32		//EEPROM から一度に読み込むサイズ
+#define PWM_PCMPLAY_READSIZE	32		//EEPROM から一度に読み込むサイズ（ <= EEPROM_ARRAY_BUFF_MAX であること）
 
 //********** 関数定義 **********//
 //EEPROMからのWAV再生を開始
-//	引数：I2Cスレーブアドレス, 再生開始アドレス
-void PWM_PCM_WAV_Play(uint8_t, uint16_t );
+//	引数：再生開始アドレス
+void PWM_PCM_WAV_Play( uint32_t );
 
 #endif /* PWM_PCM_WAV_H_ */

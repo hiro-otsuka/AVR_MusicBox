@@ -37,7 +37,7 @@
 
 //********** 定数定義 **********//
 // 各種サイズ
-#define PWM_MUSICBOX_BUFF	32	// MML格納用バッファのサイズ（2の倍数であること）
+#define PWM_MUSICBOX_BUFF	16	// MML格納用バッファのサイズ（EEPROM_ARRAY_BUFF_MAXの半分以下であること）
 
 // 音符情報
 #define N_C		0+1
@@ -96,7 +96,7 @@ void PWM_PCM_MB_MEM_SetScoreChannel(uint8_t , const uint16_t* , uint16_t );
 void PWM_PCM_MB_MEM_Play(uint8_t );
 
 //オルゴールモジュールの再生開始（C_ENDまで再生すると終了） EEOROM版
-//	引数：I2Cスレーブアドレス, 開始アドレス
-void PWM_PCM_MB_EEPROM_Play(uint8_t , uint16_t );
+//	引数：開始アドレス
+void PWM_PCM_MB_EEPROM_Play( uint32_t );
 
 #endif //PWM_PCM_MB_H_

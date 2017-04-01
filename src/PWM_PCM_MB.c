@@ -19,12 +19,13 @@
  *  2017/02/18 構成変更(Hiro OTSUKA) 鋸波を追加
  *  2017/02/19 機能改善(Hiro OTSUKA) 周波数変更時のプチノイズを低減
  *  2017/03/24 機能変更(Hiro OTSUKA) 最大チャンネル数による音量調整を削除しMMLの音量で調整するよう変更
+ *  2017/04/01 機能変更(Hiro OTSUKA) EEPROM Array の実装に対応
  *
  */
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "USI_TWI_Master.h"
+#include "EEPROM_Array.h"
 #include "PWM_PCM_MB.h"
 
 //********** 関数定義 **********//
@@ -56,8 +57,7 @@ typedef volatile struct tagMusicScoreChannel {
 	volatile uint8_t			MMLBuff_tail_step;
 	
 	const volatile uint16_t*	ScoreBuff;
-	volatile uint8_t			ScoreI2C;
-	volatile uint16_t			ScoreAddr;
+	volatile uint32_t			ScoreAddr;
 	volatile uint16_t			ScoreMax;
 	volatile uint16_t			ScoreIndex;
 	
@@ -285,38 +285,28 @@ void PWM_PCM_MB_MEM_Play(uint8_t MusicNum)
 
 //=============================
 //オルゴールモジュールの再生開始（C_ENDまで再生すると終了） EEOROM版
-//	引数：I2Cスレーブアドレス, 開始アドレス
-void PWM_PCM_MB_EEPROM_Play(uint8_t slaveaddr , uint16_t StartAddr)
+//	引数：開始アドレス
+void PWM_PCM_MB_EEPROM_Play(uint32_t StartAddr)
 {
 	// メモリ上のスコアを初期化
 	MusicScore_Init();
-
-	// EEPROMを読み込んで必要情報をセット
-	do {
-		USI_TWI_Master_tranBegin(slaveaddr);
-		USI_TWI_Master_tranSend((uint8_t)(StartAddr >> 8));
-		USI_TWI_Master_tranSend((uint8_t)(StartAddr & 0xFF));
-	} while(USI_TWI_Master_tranCommit());
 	
-	USI_TWI_Master_receiveFrom(slaveaddr, 1);	// チャンネル数を読み込み
+	if (EEPROM_Array_SetAddr(StartAddr)) return;
+	
+	EEPROM_Array_Read(1);	// チャンネル数を読み込み
 	StartAddr ++;
 	
-	uint8_t channel_num = USI_TWI_Master_receive();
+	uint8_t channel_num = EEPROM_Array_data();
 	for (uint8_t channel = 0; channel < channel_num; channel ++) {
 		// チャンネルの情報開始位置に移動
-		do {
-			USI_TWI_Master_tranBegin(slaveaddr);
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr >> 8));
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr & 0xFF));
-		} while(USI_TWI_Master_tranCommit());
+		if (EEPROM_Array_SetAddr(StartAddr)) return;
 		
-		USI_TWI_Master_receiveFrom(slaveaddr, 2);	// チャンネルの長さ（Byte数）
+		EEPROM_Array_Read(2);	// チャンネルの長さ（Byte数）
 		StartAddr += 2;
-		uint16_t scoreNums = USI_TWI_Master_receive() + (USI_TWI_Master_receive() << 8);
-		MusicScore_Channel[channel].ScoreI2C = slaveaddr;
+		uint16_t scoreNums = EEPROM_Array_data2();
 		MusicScore_Channel[channel].ScoreAddr = StartAddr;
 		MusicScore_Channel[channel].ScoreMax = scoreNums/2;
-		StartAddr += scoreNums;
+		StartAddr += (uint32_t)scoreNums;
 	}
 	// メインの再生モジュールをコール
 	MusicScore_PlayMain();
@@ -359,7 +349,6 @@ void MusicScore_Init()
 	for (int channel = 0; channel < MUSIC_SCORE_CHANNELS; channel ++) {
 		MusicScore_Channel[channel].ScoreBuff = 0;
 		MusicScore_Channel[channel].ScoreMax = 0;
-		MusicScore_Channel[channel].ScoreI2C = 0;
 		MusicScore_Channel[channel].ScoreAddr = 0;
 		MusicScore_Channel[channel].ScoreIndex = 0;
 		MusicScore_Channel[channel].VolMst = 16;
@@ -515,21 +504,16 @@ void MusicScore_SetMML(uint8_t channel, uint16_t readNum)
 			if (MusicScore_Channel[channel].ScoreIndex >= MusicScore_Channel[channel].ScoreMax) MusicScore_Channel[channel].ScoreIndex = 0;
 			MusicScore_Channel[channel].MMLBuff_head &= (PWM_MUSICBOX_BUFF-1);
 		}
-	// EEPROM空の再生
+	// EEPROMからの再生
 	} else if (MusicScore_Channel[channel].ScoreAddr != 0) {
 		// 読み込み先アドレスに移動
-		uint8_t slaveaddr = MusicScore_Channel[channel].ScoreI2C;
-		uint16_t StartAddr = MusicScore_Channel[channel].ScoreAddr + MusicScore_Channel[channel].ScoreIndex * 2;
+		uint32_t StartAddr = MusicScore_Channel[channel].ScoreAddr + (uint32_t)(MusicScore_Channel[channel].ScoreIndex * 2);
 		if (readNum > MusicScore_Channel[channel].ScoreMax - MusicScore_Channel[channel].ScoreIndex) readNum = MusicScore_Channel[channel].ScoreMax - MusicScore_Channel[channel].ScoreIndex;
-		do {
-			USI_TWI_Master_tranBegin(slaveaddr);
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr >> 8));
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr & 0xFF));
-		} while(USI_TWI_Master_tranCommit());
-		USI_TWI_Master_receiveFrom(slaveaddr, readNum * 2);
+		if (EEPROM_Array_SetAddr(StartAddr)) return;
+		EEPROM_Array_Read((uint8_t)(readNum * 2));
 		while(readNum > 0 && MusicScore_Channel[channel].MMLBuff_tail != ((MusicScore_Channel[channel].MMLBuff_head+1) & (PWM_MUSICBOX_BUFF-1))) {
 			readNum --;
-			MusicScore_Channel[channel].MMLBuff[MusicScore_Channel[channel].MMLBuff_head++] = USI_TWI_Master_receive() | (USI_TWI_Master_receive() << 8);
+			MusicScore_Channel[channel].MMLBuff[MusicScore_Channel[channel].MMLBuff_head++] = EEPROM_Array_data2();
 			MusicScore_Channel[channel].ScoreIndex ++;
 			if (MusicScore_Channel[channel].ScoreIndex >= MusicScore_Channel[channel].ScoreMax) MusicScore_Channel[channel].ScoreIndex = 0;
 			MusicScore_Channel[channel].MMLBuff_head &= (PWM_MUSICBOX_BUFF-1);

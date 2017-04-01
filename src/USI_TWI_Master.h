@@ -13,6 +13,7 @@
  *
  * 更新履歴：
  *  2017/01/29 新規作成(Hiro OTSUKA)
+ *  2017/04/01 機能変更(Hiro OTSUKA) EEPROM Array の実装に対応
  *
  */
 
@@ -24,7 +25,7 @@
 #include <inttypes.h>
 
 //********** 定数定義 **********//
-#define USI_TWI_MASTER_BUF_SIZE    32     // bytes in message buffer
+#define USI_TWI_MASTER_BUF_SIZE    33     // bytes in message buffer
 
 //エラーコード
 #define USI_TWI_NO_DATA             0x08  // Transmission buffer is empty

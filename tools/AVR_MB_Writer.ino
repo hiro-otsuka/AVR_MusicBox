@@ -16,19 +16,29 @@
  * 更新履歴：
  *  2017/02/17 個別に公開していたものを ATTiny85 のソフトと統合して公開
  *  2017/03/11 GUIと連動するため EEPROM_write から分岐し、Fuseリセット・フラッシュ書き込み機能を追加して公開
+ *  2017/04/01 AVR_MB の機能変更にあわせ、複数の EEPROM をまとめて扱うよう機能変更
  *
  */
 
 #include <Wire.h>
 
 // for EEPROM ======================================================================
-#define EEPROM_ADDR 0x50  // Default I2C Addr
-#define READ_LINE 32
+#define I2C_ADDR_START  0x50
+#define I2C_ADDR_MAX  8
+#define I2C_BUFF_SIZE 32
+#define I2C_PAGE_SIZE 0x7F
+
 #define READ_COLS 32
 
-unsigned int I2CAddr;
-unsigned int LastAddr;
-unsigned char CmdEnable;
+uint32_t LastAddr;
+uint8_t CmdEnable;
+
+uint8_t I2CList[I2C_ADDR_MAX];
+uint8_t I2CNums = 0;
+
+uint8_t I2CBuff[I2C_BUFF_SIZE];
+uint8_t I2CBuff_idx = 0;
+uint8_t I2CBuff_max = 0;
 
 enum HEX_Status {
   HEX_S_START, HEX_S_SIZE, HEX_S_ADDR, HEX_S_TYPE, HEX_S_DATA, HEX_S_CHECK, HEX_S_EOL
@@ -72,23 +82,21 @@ char HexText_hex2dec(char inChar)
   return 16;
 }
 
-void HexText_write(unsigned int Val, int len = 4)
+void HexText_write(uint32_t Val, int len = 4)
 {
-    if (Val < 16) Serial.print("0");
-    if (len > 3) {
-      if (Val < 256) Serial.print("0");
-      if (len > 2) {
-        if (Val < 4096) Serial.print("0");
-      }
-    }
+    if (len > 5 && Val < 0x100000) Serial.print("0");
+    if (len > 4 && Val <  0x10000) Serial.print("0");
+    if (len > 3 && Val <   0x1000) Serial.print("0");
+    if (len > 2 && Val <    0x100) Serial.print("0");
+    if (len > 1 && Val <     0x10) Serial.print("0");
     Serial.print(Val, HEX);
 }
 
-int HexText_input(int len, unsigned int* num) {
+int HexText_input(int len, uint32_t* num) {
   char inByte;
   char inDec;
   int i;
-  unsigned int InputTmp = 0;
+  uint32_t InputTmp = 0;
   
   for(i = 0; i < len; i++) {
     while(!Serial.available());
@@ -109,7 +117,7 @@ int HexText_input(int len, unsigned int* num) {
     Serial.write(inByte);
   }
   if (i == 10) return 0;
-  *num = InputTmp;
+  (*num) = InputTmp;
 
   return len;
 }
@@ -261,11 +269,12 @@ HEX_Action HEX_decode(char inByte)
 
 // for EEPROM ======================================================================
 void EEPROM_find() {
-  for (int i = 0x50; i < 0x58; i++) {
-    Wire.beginTransmission((unsigned char)i);
+  for (int i = I2C_ADDR_START; i < I2C_ADDR_START + I2C_ADDR_MAX; i++) {
+    Wire.beginTransmission((uint8_t)i);
     Wire.write(0);
     Wire.write(0);
     if (Wire.endTransmission() == 0) {
+      I2CList[I2CNums++] = i;
       Serial.print(">");
       HexText_write(i, 2);
       Serial.println(INF_NULL);
@@ -274,26 +283,75 @@ void EEPROM_find() {
   Serial.println(":");
 }
 
+uint8_t EEPROM_startaddr(uint32_t addr) {
+  Wire.beginTransmission(I2CList[(uint8_t)(addr >> 16)]);
+  Wire.write((uint8_t)((addr >> 8) & 0xFF));
+  Wire.write((uint8_t)(addr & 0xFF));
+}
+
+uint8_t EEPROM_addr(uint32_t addr) {
+  LastAddr = addr;
+  EEPROM_startaddr(LastAddr);
+  return Wire.endTransmission();
+}
+
+uint8_t EEPROM_read(uint8_t nums)
+{
+  I2CBuff_idx = 0;
+  I2CBuff_max = 0;
+  
+  if (nums > I2C_BUFF_SIZE) nums = I2C_BUFF_SIZE;
+  uint32_t nextAddr = LastAddr + (uint32_t)nums;
+
+  if ((nextAddr & 0xFF0000) == (LastAddr & 0xFF0000)) {
+    //アドレスを跨がないなら素直に読む
+    Wire.requestFrom(I2CList[(uint8_t)(LastAddr >> 16)], nums);
+    for (int i = 0; Wire.available() != 0; i++) I2CBuff[I2CBuff_max ++] = Wire.read();
+  } else {
+    //アドレスを跨ぐ場合は二回に分けて読む
+    uint8_t nums1 = (uint8_t)(0x100 - (uint16_t)(LastAddr & 0xFF));
+    uint8_t nums2 = (uint8_t)(nextAddr & 0xFF);
+    Wire.requestFrom(I2CList[(uint8_t)(LastAddr >> 16)], nums1);
+    for (int i = 0; Wire.available() != 0; i++) I2CBuff[I2CBuff_max ++] = Wire.read();
+    EEPROM_addr(nextAddr & 0xFF0000);
+    if (nums2) {
+      Wire.requestFrom(I2CList[(uint8_t)(nextAddr >> 16)], nums2);
+      for (int i = 0; Wire.available() != 0; i++) I2CBuff[I2CBuff_max ++] = Wire.read();
+    }
+  }
+  LastAddr = nextAddr;
+  
+  return I2CBuff_max;
+}
+
+uint8_t EEPROM_dataAvailable()
+{
+  return I2CBuff_max - I2CBuff_idx;
+}
+
+uint8_t EEPROM_data()
+{
+  return I2CBuff[I2CBuff_idx++];
+}
+
 void EEPROM_files() {
-  int isEnd = 0;
-  unsigned int readAddr = 0;
+  uint8_t isEnd = 0;
+  uint32_t readAddr = 0;
+  uint32_t readSize;
   unsigned int readBuff[8];
-  unsigned int readSize;
   
   while(!isEnd) {
-    Wire.beginTransmission((unsigned char)I2CAddr);
-    Wire.write((unsigned char)(readAddr >> 8));
-    Wire.write((unsigned char)(readAddr & 0xFF));
-    if (Wire.endTransmission()) {
+    if (EEPROM_addr(readAddr)) {
       Serial.println(ERR_I2C);
       return;
     }
+    
     //8バイト分読み込み
-    Wire.requestFrom((int)I2CAddr, 8);
-    for (int i = 0; Wire.available() != 0; i ++) readBuff[i] = Wire.read();
-    readSize = readBuff[4] + (readBuff[5] << 8);
+    EEPROM_read(8);
+    for (int i = 0; EEPROM_dataAvailable(); i ++) readBuff[i] = EEPROM_data();
+    readSize = (uint32_t)readBuff[4] + ((uint32_t)readBuff[5] << 8) + ((uint32_t)readBuff[6] << 16) + ((uint32_t)readBuff[7] << 24);
     Serial.print(">");
-    HexText_write(readAddr);
+    HexText_write(readAddr, 6);
     Serial.print(" ");
     switch(readBuff[0]) {
       case 'R': // PCM
@@ -311,21 +369,20 @@ void EEPROM_files() {
         break;
     }
     if (!isEnd) {
-      Serial.println(" ");
-      HexText_write(readSize + 8);
+      Serial.print(" ");
+      HexText_write(readSize + 8, 6);
       readAddr += readSize + 8;
       Serial.println(INF_NULL);
     }
   }
 }
 
-void EEPROM_write(unsigned char noAddr)
+void EEPROM_writeHEX()
 {
   unsigned char inByte;
   int isEnd = 0;
 
   Serial.print(INF_HEX);
-  if (noAddr) Serial.print("(Address Ignore)");
   Serial.print("?");
   
   HEX_start();
@@ -336,17 +393,14 @@ void EEPROM_write(unsigned char noAddr)
     
     switch(HEX_decode(inByte)) {
       case HEX_A_START:
-        if (noAddr == 0) LastAddr = HEX_inAddr;
-        Wire.beginTransmission((unsigned char)I2CAddr);
-        Wire.write((unsigned char)(LastAddr >> 8));
-        Wire.write((unsigned char)LastAddr & 0xFF);
-        HexText_write(LastAddr);
+        EEPROM_startaddr(LastAddr);
+        HexText_write(LastAddr, 6);
         Serial.print(" ");
         break;
       case HEX_A_DATA:
         Wire.write(HEX_inData);
         LastAddr ++;
-        if (HEX_inCount == 0 || (LastAddr & 0xF) == 0x0) { //Minimal Bank Write
+        if (HEX_inCount == 0 || (LastAddr & I2C_PAGE_SIZE) == 0x0) { //Bank Write
           Serial.print(",");
           if (Wire.endTransmission()) {
             Serial.println(INF_NULL);
@@ -355,10 +409,8 @@ void EEPROM_write(unsigned char noAddr)
             while(Serial.available()) Serial.read();
             return;
           }
-          delay(10);
-          Wire.beginTransmission((unsigned char)I2CAddr);
-          Wire.write((unsigned char)((LastAddr) >> 8));
-          Wire.write((unsigned char)(LastAddr) & 0xFF);
+          delay(20);  //10ms設定では、チップ間の切り替え時に問題が発生した
+          EEPROM_startaddr(LastAddr);
         } else {
           Serial.print(".");
         }
@@ -374,37 +426,21 @@ void EEPROM_write(unsigned char noAddr)
   }
 }
 
-int EEPROM_read(int max_line, int max_cols) {
-  for (int i = 0; i < max_line; i++) {
-    int readWill = max_cols;
-    delay(1);
-    unsigned int readAddr = LastAddr + i * max_cols;
+void EEPROM_readHEX(uint32_t readlen) {
+  Serial.println(INF_NULL);
+  while(readlen) {
     Serial.print(">");
-    HexText_write(readAddr);
+    HexText_write(LastAddr, 6);
     Serial.print(" ");
-    
-    while(readWill != 0) {
-      Wire.beginTransmission((unsigned char)I2CAddr);
-      Wire.write((unsigned char)((readAddr + (max_cols - readWill)) >> 8));
-      Wire.write((unsigned char)((readAddr + (max_cols - readWill)) & 0xFF));
-      if (Wire.endTransmission()) {
-        Serial.println(ERR_I2C);
-        return 1;
-      }
-      delay(10);
-      Wire.requestFrom((int)I2CAddr, max_cols);
-      int readCount = Wire.available();
-      for (int j = 0; j < readCount; j++) {
-        HexText_write(Wire.read(), 2);
-      }
-      readWill -= readCount;
+    uint8_t cols = (readlen > READ_COLS ? READ_COLS : readlen);
+    EEPROM_read(cols);
+    for (int i = 0; i < cols; i ++) {
+      HexText_write(EEPROM_data(), 2);
     }
     Serial.println(INF_NULL);
+    readlen -= cols;
   }
-  LastAddr = LastAddr + max_line * max_cols;
   Serial.println(":");
-  
-  return 0;
 }
 
 // for HVS common ==================================================================
@@ -635,9 +671,9 @@ void setup() {
   digitalWrite(VCC, HIGH);  //VCC = OFF
 
   //for EEPROM
-  I2CAddr = EEPROM_ADDR;
   LastAddr = 0;
   CmdEnable = 1;
+  I2CNums = 0;
 
   //for common
   Serial.begin(9600);
@@ -645,6 +681,7 @@ void setup() {
 }
 
 void loop() {
+  uint32_t InputTmp;
   char inByte;
   int res;
 
@@ -652,13 +689,11 @@ void loop() {
   if (CmdEnable != 0) {
     Serial.println(INF_NULL);
     Serial.println("# ----------------------------------------");
-    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.2.0");
+    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.3.0");
     Serial.println("#                           By Hiro OTSUKA");
     Serial.println("# ----------------------------------------");
-    Serial.print("'++ I2C Addr=[");
-    HexText_write(I2CAddr, 2);
-    Serial.print("] ++ R/W Addr=[");
-    HexText_write(LastAddr);
+    Serial.print("'++ R/W Addr=[");
+    HexText_write(LastAddr, 6);
     Serial.println("] ++");
     Serial.print("@ Cmd(h=help) ");
   }
@@ -672,46 +707,35 @@ void loop() {
     case 'V':
       Serial.println(inByte);
       CmdEnable = 1;
-      Serial.println(":AVR MB R/W Ver2.0");
+      Serial.println(":AVR MB R/W Ver3.0");
       break;
     case 'h':
     case 'H':
       Serial.println(inByte);
       CmdEnable = 1;
       Serial.println(INF_NULL);
-      Serial.println("#[h] =this help       [v] =Version");
-      Serial.println("#[f] =Find I2C Addr   [i] =set I2C Addr");
-      Serial.println("#[l] =List files      [s] =Set R/W Addr");
-      Serial.println("#[w] =Write(to head)  [a] =Append(to R/W Addr)");
-      Serial.println("#[r] =Read(from head) [n] =read Next(from R/W Addr)");
-      Serial.println("#[c] =Change byte(to R/W Addr)");
-      Serial.println("#[z] =Fuse reset      [p] =Program write");
+      Serial.println("#[h] =this help   [v] =Version");
+      Serial.println("#[f] =Find I2C Addr");
+      Serial.println("#[l] =List files  [s] =Set R/W Addr");
+      Serial.println("#[w] =Write       [r] =Read");
+      Serial.println("#[c] =Change byte");
+      Serial.println("#[z] =Fuse reset  [p] =Program write");
       break;
     case 'F':
     case 'f':
       digitalWrite(VCC, LOW);  //VCC = ON
-      delay(100);
+      delay(500);
       Serial.println(inByte);
       CmdEnable = 1;
       Serial.println("# I2C Addr");
       EEPROM_find();
       digitalWrite(VCC, HIGH);  //VCC = OFF
       break;
-    case 'I':
-    case 'i':
-      Serial.println(inByte);
-      CmdEnable = 1;
-      Serial.print("# I2C Addr(1 Byte HEX)?");
-      if (HexText_input(2, &I2CAddr) != 0) {
-        Serial.println(INF_NULL);
-        Serial.println(RES_OK);
-      }
-      break;
     case 'L':
     case 'l':
       digitalWrite(VCC, LOW);  //VCC = ON
-      delay(100);
       Serial.println(inByte);
+      delay(500);
       CmdEnable = 1;
       Serial.println("# Files");
       EEPROM_files();
@@ -721,8 +745,9 @@ void loop() {
     case 's':
       Serial.println(inByte);
       CmdEnable = 1;
-      Serial.print("# R/W Addr(2 Bytes HEX)?");
-      if (HexText_input(4, &LastAddr) != 0) {
+      Serial.print("# R/W Addr(3 Bytes HEX)?");
+      if (HexText_input(6, &InputTmp) != 0) {
+        LastAddr = InputTmp;
         Serial.println(INF_NULL);
         Serial.print(RES_OK);
       }
@@ -730,83 +755,59 @@ void loop() {
     case 'W':
     case 'w':
       digitalWrite(VCC, LOW);  //VCC = ON
-      delay(100);
       Serial.println(inByte);
+      delay(500);
       CmdEnable = 1;
-      EEPROM_write(0);
-      digitalWrite(VCC, HIGH);  //VCC = OFF
-      break;
-    case 'A':
-    case 'a':
-      digitalWrite(VCC, LOW);  //VCC = ON
-      delay(100);
-      Serial.println(inByte);
-      CmdEnable = 1;
-      EEPROM_write(1);
+      EEPROM_addr(LastAddr);
+      EEPROM_writeHEX();
       digitalWrite(VCC, HIGH);  //VCC = OFF
       break;
     case 'R':
     case 'r':
       Serial.println(inByte);
       CmdEnable = 1;
-      Serial.println("# Read");
-      LastAddr = 0;
-    case 'N':
-    case 'n':
-      digitalWrite(VCC, LOW);  //VCC = ON
-      delay(100);
-      Serial.println(inByte);
-      CmdEnable = 1;
-      EEPROM_read(READ_LINE, READ_COLS);
-      digitalWrite(VCC, HIGH);  //VCC = OFF
+      Serial.print("# Read Size(3 Bytes HEX)?");
+      if (HexText_input(6, &InputTmp) != 0) {
+        digitalWrite(VCC, LOW);  //VCC = ON
+        delay(500);
+        EEPROM_addr(LastAddr);
+        EEPROM_readHEX(InputTmp);
+        digitalWrite(VCC, HIGH);  //VCC = OFF
+      }
       break;
     case 'C':
     case 'c':
-      digitalWrite(VCC, LOW);  //VCC = ON
-      delay(100);
-      unsigned int tmpByte;
       Serial.println(inByte);
       CmdEnable = 1;
-      res = EEPROM_read(1, 1);
-      LastAddr --;
-      if(!res) {
+      Serial.print("# Input Data(1 Byte HEX)?");
+      if (HexText_input(2, &InputTmp) != 0) {
+        digitalWrite(VCC, LOW);  //VCC = ON
+        delay(500);
         Serial.println(INF_NULL);
-        Serial.print("# Input Data(1 Byte HEX)?");
-        if (HexText_input(2, &tmpByte) != 0) {
-          Serial.println(INF_NULL);
-          //Write 1 byte
-          Wire.beginTransmission((unsigned char)I2CAddr);
-          Wire.write((unsigned char)(LastAddr >> 8));
-          Wire.write((unsigned char)LastAddr & 0xFF);
-          Wire.write((unsigned char)tmpByte);
-          if (Wire.endTransmission()) {
-            Serial.println(ERR_I2C);
-          } else {
-            Serial.print("'New Data=[");
-            HexText_write(tmpByte, 2);
-            Serial.print("] wrote to R/W Addr=[");
-            HexText_write(LastAddr);
-            Serial.println("]");
-            Serial.println(RES_OK);
-            LastAddr ++;
-          }
+        //Write 1 byte
+        EEPROM_startaddr(LastAddr);
+        Wire.write((unsigned char)InputTmp);
+        if (Wire.endTransmission()) {
+          Serial.println(ERR_I2C);
+        } else {
+          Serial.println(RES_OK);
+          LastAddr ++;
         }
+        digitalWrite(VCC, HIGH);  //VCC = OFF
       }
-      digitalWrite(VCC, HIGH);  //VCC = OFF
       break;
     case 'Z':
     case 'z':
       Serial.println(inByte);
       CmdEnable = 1;
       Serial.print("# FF=Init, 11=RST Enable, 22=RST Disable, Other=Cancel ?");
-      unsigned int tmpCmd;
-      HexText_input(2, &tmpCmd);
+      HexText_input(2, &InputTmp);
       Serial.println(INF_NULL);
-      if (tmpCmd == 0xFF) {
+      if (InputTmp == 0xFF) {
         Fuse_reset(0);
-      } else if (tmpCmd == 0x11) {
+      } else if (InputTmp == 0x11) {
         Fuse_reset(1);
-      } else if (tmpCmd == 0x22) {
+      } else if (InputTmp == 0x22) {
         Fuse_reset(2);
       } else {
         Serial.println("!Canceled.");

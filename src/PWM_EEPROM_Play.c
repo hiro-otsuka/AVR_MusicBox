@@ -15,6 +15,7 @@
  *  2017/02/17 新規作成(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *  2017/02/25 機能改善(Hiro OTSUKA) MMLとWAVを分離して再生できるよう機能改善
  *  2017/02/26 機能追加(Hiro OTSUKA) Init時にEEPROMからパラメータを読み込む機能を追加
+ *  2017/04/01 機能変更(Hiro OTSUKA) EEPROM Array の実装に対応
  *
  */
 
@@ -24,7 +25,6 @@
 uint8_t EEPROM_Search(uint8_t, uint8_t*, uint8_t* );
 
 //********** 定数定義 **********//
-#define	EEPROM_I2C_MAX	8
 
 //********** 変数定義 **********//
 // EEPROM に保存されているファイルの数（種類別）
@@ -32,18 +32,57 @@ volatile uint8_t EEPROM_Files[PWM_PCMPLAY_TYPES];
 // EEPROM に保存されているパラメータを保存
 volatile uint8_t EEPROM_Params[PWM_PCMPLAY_PARAMS];
 
-uint8_t	EEPROM_File[PWM_PCMPLAY_TYPES][EEPROM_I2C_MAX];
-
 //********** 外部関数 **********//
 //=============================
-//EEPROMからのファイル再生を開始（I2Cアドレス指定）
-//	引数：I2Cスレーブアドレス, 再生するファイルの種類, 何番目の情報を再生するか
-void EEPROM_PlayAt(uint8_t slaveaddr, uint8_t type, uint8_t count)
+//EEPROMのファイル数を検索
+void EEPROM_Init()
 {
+	for (uint8_t i = 0; i < PWM_PCMPLAY_PARAMS; i++ ) EEPROM_Params[i] = 0;
+	for (uint8_t i = 0; i < PWM_PCMPLAY_TYPES; i++ ) EEPROM_Files[i] = 0;
+	
 	uint8_t PlayMode = 0;
-	uint16_t StartAddr = 0;
+	uint32_t StartAddr = 0;
 	uint32_t inSize = 0;
-	int TimeOut = 0;
+	
+	//ファイルが存在する限りスキップしていく（I2Cアドレスが無い場合は 0 ）
+	while(1) {
+		if (inSize != 0) {
+			StartAddr += inSize + 8;
+			inSize = 0;
+		}
+		if (EEPROM_Array_SetAddr(StartAddr)) return;
+
+		//WAVフォーマットのヘッダファイル読み込み
+		EEPROM_Array_Read(4);	//'RIFF' or 'MMLD' or 'PARM'
+		PlayMode = EEPROM_Array_data();		// 'R' or 'M' or 'P'
+		//どれでもない場合は終了
+		if (PlayMode != 'R' && PlayMode != 'M' && PlayMode != 'P') break;
+		//ファイルのサイズを得る
+		EEPROM_Array_Read(4);	//Size(below)
+		inSize = EEPROM_Array_data4();
+		
+		//種類ごとに対象のファイルをカウントアップする
+		if (PlayMode == 'R') EEPROM_Files[PWM_PCMPLAY_PCM] ++;
+		else if (PlayMode == 'M') EEPROM_Files[PWM_PCMPLAY_MML] ++;
+		else if (PlayMode == 'P') {
+			//パラメータを見つけた場合はカウントせず、その場で読み込む
+			EEPROM_Array_Read(inSize);
+			for (uint8_t i = 0; i < inSize; i++) {
+				EEPROM_Params[i] = EEPROM_Array_data();
+			}
+		}
+	}
+}
+
+//=============================
+//EEPROMからのファイル再生を開始
+//	引数：再生するファイルの種類, 何番目の情報を再生するか
+void EEPROM_Play(uint8_t type, uint8_t count)
+{
+
+	uint8_t PlayMode = 0;
+	uint32_t StartAddr = 0;
+	uint32_t inSize = 0;
 	
 	//指定された count 番目のファイルを見つけるまでスキップしていく
 	do {
@@ -51,23 +90,18 @@ void EEPROM_PlayAt(uint8_t slaveaddr, uint8_t type, uint8_t count)
 			StartAddr += inSize + 8;
 			inSize = 0;
 		}
-		TimeOut = 0;
-		do {
-			USI_TWI_Master_tranBegin(slaveaddr);
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr >> 8));
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr & 0xFF));
-			TimeOut ++;
-		} while(USI_TWI_Master_tranCommit() && TimeOut < PWM_PCMPLAY_TIMEOUT);
-	
+		if (EEPROM_Array_SetAddr(StartAddr)) return;
+
 		//WAVフォーマットのヘッダファイル読み込み
-		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//'RIFF' or 'MMLD' or 'PARM'
-		PlayMode = USI_TWI_Master_receive();		// 'R' or 'M' or 'P'
-		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//Size(below)
+		EEPROM_Array_Read(4);	//'RIFF' or 'MMLD' or 'PARM'
+		PlayMode = EEPROM_Array_data();		// 'R' or 'M' or 'P'
+		//どれでもない場合は終了
+		if (PlayMode != 'R' && PlayMode != 'M' && PlayMode != 'P') break;
+
 		//ファイルのサイズを得る
-		for (uint8_t i = 0; i < 4; i++) {
-			inSize >>= 8;
-			inSize += ((uint32_t)USI_TWI_Master_receive() << 24);
-		}
+		EEPROM_Array_Read(4);	//Size(below)
+		inSize = EEPROM_Array_data4();
+
 		//対象ファイルじゃない場合はループを抜けない（'P'は常になかったことにする）
 		if (PlayMode == 'P') count++;
 		else if (type == PWM_PCMPLAY_MML && PlayMode != 'M') count ++;
@@ -77,99 +111,11 @@ void EEPROM_PlayAt(uint8_t slaveaddr, uint8_t type, uint8_t count)
 	//フォーマットを確認
 	switch(PlayMode) {
 		case 'R':	//RIFF = WAV
-			PWM_PCM_WAV_Play(slaveaddr, StartAddr + 4+4);
-			break;
+		PWM_PCM_WAV_Play(StartAddr + 4+4);
+		break;
 		case 'M':	//MMLD = MML
-			PWM_PCM_MB_EEPROM_Play(slaveaddr, StartAddr + 4+4);
-			break;
+		PWM_PCM_MB_EEPROM_Play(StartAddr + 4+4);
+		break;
 	}
 }
 
-//=============================
-//EEPROMのファイル数を検索
-void EEPROM_Init()
-{
-	uint8_t mmlnum, pcmnum;
-	
-	for (uint8_t i = 0; i < PWM_PCMPLAY_PARAMS; i++ ) EEPROM_Params[i] = 0;
-	for (uint8_t i = 0; i < PWM_PCMPLAY_TYPES; i++ ) EEPROM_Files[i] = 0;
-	for (uint8_t i = 0; i < EEPROM_I2C_MAX; i++) {
-		uint8_t num = EEPROM_Search(0x50 + i, &mmlnum, &pcmnum);
-		EEPROM_File[PWM_PCMPLAY_MML][i] = mmlnum;
-		EEPROM_Files[PWM_PCMPLAY_MML] += mmlnum;
-		EEPROM_File[PWM_PCMPLAY_PCM][i] = pcmnum;
-		EEPROM_Files[PWM_PCMPLAY_PCM] += pcmnum;
-		EEPROM_File[PWM_PCMPLAY_ANY][i] = num;
-		EEPROM_Files[PWM_PCMPLAY_ANY] += num;
-	}
-}
-
-//=============================
-//EEPROMからのファイル再生を開始
-//	引数：再生するファイルの種類, 何番目の情報を再生するか
-void EEPROM_Play(uint8_t type, uint8_t count)
-{
-	uint8_t index = 0;
-	
-	while(count >= EEPROM_File[type][index] && index < EEPROM_I2C_MAX) {
-		count -= EEPROM_File[type][index];
-		index ++;
-	}
-	if (index >= EEPROM_I2C_MAX || EEPROM_File[index] == 0) return;
-	EEPROM_PlayAt(0x50 + index, type, count);
-}
-
-//********** 内部関数 **********//
-//-----------------------------
-//EEPROMからのWAV再生を開始
-//	引数：I2Cスレーブアドレス, MML数の返戻アドレス, PCM数の返戻アドレス
-//  戻値：ファイル数
-uint8_t EEPROM_Search(uint8_t slaveaddr, uint8_t* mmlnum, uint8_t* pcmnum)
-{
-	uint8_t PlayMode = 0;
-	uint16_t StartAddr = 0;
-	uint32_t inSize = 0;
-	int TimeOut = 0;
-	
-	*mmlnum = 0;
-	*pcmnum = 0;
-	//ファイルが存在する限りスキップしていく（I2Cアドレスが無い場合は 0 ）
-	while(1) {
-		if (inSize != 0) {
-			StartAddr += inSize + 8;
-			inSize = 0;
-		}
-		TimeOut = 0;
-		do {
-			USI_TWI_Master_tranBegin(slaveaddr);
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr >> 8));
-			USI_TWI_Master_tranSend((uint8_t)(StartAddr & 0xFF));
-			TimeOut ++;
-		} while(USI_TWI_Master_tranCommit() && TimeOut < PWM_PCMPLAY_TIMEOUT);
-		
-		// I2Cアドレスが無ければ 0 とする
-		if (TimeOut >= PWM_PCMPLAY_TIMEOUT) return 0;
-		
-		//WAVフォーマットのヘッダファイル読み込み
-		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//'RIFF' or 'MMLD' or 'PARM'
-		PlayMode = USI_TWI_Master_receive();		// 'R' or 'M' or 'P'
-		//どれでもない場合は終了
-		if (PlayMode != 'R' && PlayMode != 'M' && PlayMode != 'P') return (*mmlnum) + (*pcmnum);
-		//ファイルのサイズを得る
-		USI_TWI_Master_receiveFrom(slaveaddr, 4);	//Size(below)
-		for (uint8_t i = 0; i < 4; i++) {
-			inSize >>= 8;
-			inSize += ((uint32_t)USI_TWI_Master_receive() << 24);
-		}
-		//種類ごとに対象のファイルをカウントアップする
-		if (PlayMode == 'R') (*pcmnum) ++;
-		else if (PlayMode == 'M') (*mmlnum) ++;
-		else {
-			//パラメータを見つけた場合はカウントせず、その場で読み込む
-			USI_TWI_Master_receiveFrom(slaveaddr, inSize);
-			for (uint8_t i = 0; i < inSize; i++) {
-				EEPROM_Params[i] = USI_TWI_Master_receive();
-			}
-		}
-	}
-}

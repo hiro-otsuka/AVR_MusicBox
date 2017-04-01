@@ -16,6 +16,7 @@
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *  2017/02/25 機能改善(Hiro OTSUKA) MMLとWAVを分離して再生するモードとシリアル通信指定のモードを追加
  *  2017/02/26 機能追加(Hiro OTSUKA) Init時にEEPROMからパラメータを読み込む機能を追加
+ *  2017/04/01 機能変更(Hiro OTSUKA) EEPROM Array の実装に対応
  *
  */
 
@@ -46,7 +47,7 @@ int main(void)
 	PIN_Control_IntAssign();
 	
 	//I2C を初期化する
-	USI_TWI_Master_Initialize(16000, 1000);
+	EEPROM_Array_Init(16000, 1000);
 
 	//演奏モジュールを初期化する
 	PWM_PCM_MB_Init();
