@@ -26,7 +26,7 @@
 #define I2C_ADDR_START  0x50
 #define I2C_ADDR_MAX  8
 #define I2C_BUFF_SIZE 32
-#define I2C_PAGE_SIZE 0x7F
+#define I2C_PAGE_SIZE 0x0F
 
 #define READ_COLS 32
 
@@ -65,6 +65,7 @@ const String INF_NULL = "";
 #define  WAIT_START 5000  //Wait Start(microsecond)
 #define  WAIT_STEP  50    //Wait Step(microsecond)
 #define  WAIT_END   10000 //Wait End(microsecond)
+#define  WAIT_COUNT 32    //Wait Count(milisecond)
 
 #define  HFUSE  0x747C
 #define  LFUSE  0x646C
@@ -445,7 +446,7 @@ void EEPROM_readHEX(uint32_t readlen) {
 
 // for HVS common ==================================================================
 byte HVS_SerialOut (byte val1, byte val2) {
-  int waitcount = 1024 * 1;
+  int waitcount = WAIT_COUNT;
   int inBits = 0;
   
   //Wait until SDO goes high
