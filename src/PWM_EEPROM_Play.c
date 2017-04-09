@@ -62,8 +62,14 @@ void EEPROM_Init()
 		inSize = EEPROM_Array_data4();
 		
 		//種類ごとに対象のファイルをカウントアップする
-		if (PlayMode == 'R') EEPROM_Files[PWM_PCMPLAY_PCM] ++;
-		else if (PlayMode == 'M') EEPROM_Files[PWM_PCMPLAY_MML] ++;
+		if (PlayMode == 'R') {
+			EEPROM_Files[PWM_PCMPLAY_ANY] ++;
+			EEPROM_Files[PWM_PCMPLAY_PCM] ++;
+		}
+		else if (PlayMode == 'M') {
+			EEPROM_Files[PWM_PCMPLAY_ANY] ++;
+			EEPROM_Files[PWM_PCMPLAY_MML] ++;
+		}
 		else if (PlayMode == 'P') {
 			//パラメータを見つけた場合はカウントせず、その場で読み込む
 			EEPROM_Array_Read(inSize);

@@ -17,6 +17,7 @@
  *  2017/02/25 機能改善(Hiro OTSUKA) MMLとWAVを分離して再生するモードとシリアル通信指定のモードを追加
  *  2017/02/26 機能追加(Hiro OTSUKA) Init時にEEPROMからパラメータを読み込む機能を追加
  *  2017/04/01 機能変更(Hiro OTSUKA) EEPROM Array の実装に対応
+ *  2017/04/09 機能変更(Hiro OTSUKA) 再生モードを EEPROM のパラメータから読み込むよう変更
  *
  */
 
@@ -26,25 +27,20 @@
 #include "PIN_Control.h"
 #include "PWM_EEPROM_Play.h"
 
-//再生モードを設定
-//#define _MODE_PLAYSERIAL	//シリアル指定モード(BTN0 押下中 BTN1 押下した回数で指定)
-//#define _MODE_PLAYALL		//全再生モード(BTN0 = 戻る、BTN1 = 進む)
-#define _MODE_PLAYSPLIT		//分離再生モード(BTN0 = PCM、BTN1 = MML)
-//#define _MODE_DEBUG			//内蔵再生モード(BTN0 = 内蔵再生、BTN1 = EEPROMから順再生)
-
-//テスト実行する場合は楽譜情報を include（長くなるため分離）
-#ifdef _MODE_DEBUG
- #include "MML_Test.h"
-#endif
+//再生モードを定義（EEPROM内のパラメータファイル 0 バイト目で指定）
+#define _PLAYMODE_SPLIT			0	//分離再生モード(BTN0 = PCM、BTN1 = MML) ※パラメータが無い場合のデフォルト
+#define _PLAYMODE_ALL			1	//全再生モード(BTN0 = 戻る、BTN1 = 進む)
+#define _PLAYMODE_SERIAL_NUM	2	//シリアル指定モード(BTN0 押下中 BTN1 押下した回数で指定)
+#define _PLAYMODE_SERIAL_BTN	3	//シリアル指定モード(BTN0 押下中 BTN1 押下した回数でボタン番号を指定)
 
 int main(void)
 {
 	uint8_t MusicNum = 0;
 	uint8_t VoiceNum = 0;
-	
+	uint8_t BtnNum[PIN_SERIAL_BTN];
+
 	//マイコンを初期化する
-	PIN_Control_PinAssign();
-	PIN_Control_IntAssign();
+	PIN_Control_Init();
 	
 	//I2C を初期化する
 	EEPROM_Array_Init(16000, 1000);
@@ -52,13 +48,24 @@ int main(void)
 	//演奏モジュールを初期化する
 	PWM_PCM_MB_Init();
 	
-	//テスト実行する場合は楽譜情報を登録する
-#ifdef _MODE_DEBUG
-	PWM_PCM_MB_MEM_SetScore(0, (void(*)())MML_Test_Setup);
-#endif
-	
 	//EEPROM のファイル数を得る
 	EEPROM_Init();
+	
+	//MMLを内蔵する場合は下記の通り実行する（プログラムメモリを使用するので要注意）
+	//MMLの宣言----
+	//#include "MML_Test.h"
+	//MMLの登録----
+	//PWM_PCM_MB_MEM_SetScore(0, (void(*)())MML_Test_Setup);
+	//MMLの再生----
+	//PWM_PCM_MB_MEM_Play(0);
+	
+	//再生前の初期設定	
+	for(uint8_t i = 0; i < PIN_SERIAL_BTN; i ++) BtnNum[i] = 0;
+	
+	if (EEPROM_Params[0] == _PLAYMODE_SERIAL_NUM || EEPROM_Params[0] == _PLAYMODE_SERIAL_BTN)
+		PIN_Control_SetWait(PIN_CONTROL_WAIT_SERIAL);
+	else
+		PIN_Control_SetWait(PIN_CONTROL_WAIT);
 	
 	sei();
 	while (1) {
@@ -70,88 +77,93 @@ int main(void)
 			PIN_Control_Playing(1);	//外部のオーディオアンプをON
 			_delay_ms(30);			//オーディオアンプの起動待ち
 		}
-
-#if defined _MODE_PLAYSERIAL
-		//シリアル通信で順番を指定するモード====================
-		if (PIN_Control_Key == (1<<0)) {
-			VoiceNum = 0;
-			//完全に押されるまで待つ
-			PIN_Control_WaitKeyOn(~(1 << 0));
-			//BTN0 が離されるまで、BTN1 が押された回数を計測する
-			while (PIN_Control_GetKey() & (1 << 0)) {
-				//BTN1 が押されたら、離されるまで待つ
-				if(PIN_Control_GetKey() & (1 << 1)) {
+		switch(EEPROM_Params[0]) {
+			case _PLAYMODE_SERIAL_BTN:
+			case _PLAYMODE_SERIAL_NUM:
+				//シリアル通信で順番を指定するモード====================
+				if (PIN_Control_Key == (1<<0)) {
+					VoiceNum = 0;
 					//完全に押されるまで待つ
-					PIN_Control_WaitKeyOn(~(1 << 1));
-					VoiceNum ++;
-					//離されるまで待つ
-					while(PIN_Control_GetKey() & (1 << 1));
-					//完全に離されるまで待つ
-					PIN_Control_WaitKeyOff(~(1 << 1));
+					PIN_Control_WaitKeyOn(~(1 << 0));
+					//BTN0 が離されるまで、BTN1 が押された回数を計測する
+					while (PIN_Control_GetKey() & (1 << 0)) {
+						//BTN1 が押されたら、離されるまで待つ
+						if(PIN_Control_GetKey() & (1 << 1)) {
+							//完全に押されるまで待つ
+							PIN_Control_WaitKeyOn(~(1 << 1));
+							VoiceNum ++;
+							//離されるまで待つ
+							while(PIN_Control_GetKey() & (1 << 1));
+							//完全に離されるまで待つ
+							PIN_Control_WaitKeyOff(~(1 << 1));
+						}
+					}
+					//完全にキー押下が解除されるまで待つ
+					PIN_Control_WaitKeyOff(0);
+					//BTN1 が押されなかった場合は演奏停止するだけで終了
+					PIN_Control_Key = 0;
+					if (VoiceNum > 0) {
+						//ボタン番号を指定するモードの場合
+						if (EEPROM_Params[0] == _PLAYMODE_SERIAL_BTN) {
+							//各ボタンに指定された範囲を演奏する
+							MusicNum = BtnNum[VoiceNum-1];
+							if (MusicNum < EEPROM_Params[VoiceNum]) MusicNum = EEPROM_Params[VoiceNum];
+							BtnNum[VoiceNum-1] = MusicNum + 1;
+							if (BtnNum[VoiceNum-1] >= EEPROM_Params[VoiceNum+1]) BtnNum[VoiceNum-1] = EEPROM_Params[VoiceNum];
+						}
+						while(MusicNum > EEPROM_Files[PWM_PCMPLAY_ANY]) MusicNum -= EEPROM_Files[PWM_PCMPLAY_ANY];
+						EEPROM_Play(PWM_PCMPLAY_ANY, MusicNum);
+					}
+				} else {
+					//どれでもなければキー押下を解除
+					PIN_Control_Key = 0;
 				}
-			}
-			//完全にキー押下が解除されるまで待つ
-			PIN_Control_WaitKeyOff(0);
-			//BTN1 が押されなかった場合は演奏停止するだけで終了
-			PIN_Control_Key = 0;
-			if (VoiceNum > 0) {
-				while(VoiceNum > EEPROM_Files[PWM_PCMPLAY_ANY]) VoiceNum -= EEPROM_Files[PWM_PCMPLAY_ANY];
-				EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum-1);
-			}
-#elif defined _MODE_PLAYALL
-		//内蔵データを順に再生するモード========================
-		//完全にキー押下が解除されるまで待つ
-		PIN_Control_WaitKeyOff(0);
-		//BTN0 が押された場合は EEPROM を逆に再生する
-		if (PIN_Control_Key == (1<<0)) {
-			PIN_Control_Key = 0;
-			if (VoiceNum == 0) VoiceNum = EEPROM_Files[PWM_PCMPLAY_ANY] - 1;	// 0 に達したら最大数に戻す
-			else VoiceNum --;
-			EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum);
-		//BTN1 が押された場合は EEPROM を順に再生する
-		} else if(PIN_Control_Key == (1<<1)) {
-			PIN_Control_Key = 0;
-			EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum ++);
-			if (VoiceNum >= EEPROM_Files[PWM_PCMPLAY_ANY]) VoiceNum = 0;	//最大数に達したら 0 に戻す
-		//BTN0とBTN1 が押された場合は 停止する
-		} else if(PIN_Control_Key == ((1<<0)|(1<<1))) {
-			PIN_Control_Key = 0;
-#elif defined _MODE_PLAYSPLIT
-		//内蔵データを MMLと PCM に分けて再生するモード=========
-		//完全にキー押下が解除されるまで待つ
-		PIN_Control_WaitKeyOff(0);
-		//BTN0 が押された場合は PCM を順に再生する
-		if (PIN_Control_Key == (1<<0) && EEPROM_Files[PWM_PCMPLAY_PCM] > 0) {
-			PIN_Control_Key = 0;
-			EEPROM_Play(PWM_PCMPLAY_PCM, VoiceNum ++);
-			if (VoiceNum >= EEPROM_Files[PWM_PCMPLAY_PCM]) VoiceNum = 0;	//最大数に達したら 0 に戻す
-		//BTN1 が押された場合は MML を順に再生する
-		} else if(PIN_Control_Key == (1<<1) && EEPROM_Files[PWM_PCMPLAY_MML] > 0) {
-			PIN_Control_Key = 0;
-			EEPROM_Play(PWM_PCMPLAY_MML, MusicNum ++);
-			if (MusicNum >= EEPROM_Files[PWM_PCMPLAY_MML]) MusicNum = 0;	//最大数に達したら 0 に戻す
-		//BTN0とBTN1 が押された場合はパラメータ0 の値（通常は0）番目を再生する
-		} else if(PIN_Control_Key == ((1<<0)|(1<<1))) {
-			PIN_Control_Key = 0;
-			EEPROM_Play(PWM_PCMPLAY_ANY, EEPROM_Params[0]);
-#elif defined _MODE_DEBUG
-		//内蔵データをデバッグ再生するモード====================
-		//BTN0 が押された場合は 内蔵楽譜 を再生する
-		if (PIN_Control_Key == (1<<0)) {
-			PIN_Control_Key = 0;
-			PWM_PCM_MB_MEM_Play(0);
-		//BTN1 が押された場合は EEPROM を順に再生する
-		} else if(PIN_Control_Key == (1<<1)) {
-			PIN_Control_Key = 0;
-			EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum ++);
-			if (VoiceNum >= EEPROM_Files[PWM_PCMPLAY_ANY]) VoiceNum = 0;	//最大数に達したら 0 に戻す
-		//BTN0とBTN1 が押された場合は 停止する
-		} else if(PIN_Control_Key == ((1<<0)|(1<<1))) {
-			PIN_Control_Key = 0;
-#endif
-		//どれでもなければキー押下を解除
-		} else {
-			PIN_Control_Key = 0;
+				break;
+			case _PLAYMODE_ALL:
+				//内蔵データを順に再生するモード========================
+				//完全にキー押下が解除されるまで待つ
+				PIN_Control_WaitKeyOff(0);
+				//BTN0 が押された場合は EEPROM を逆に再生する
+				if (PIN_Control_Key == (1<<0)) {
+					PIN_Control_Key = 0;
+					if (VoiceNum == 0) VoiceNum = EEPROM_Files[PWM_PCMPLAY_ANY] - 1;	// 0 に達したら最大数に戻す
+					else VoiceNum --;
+					EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum);
+					//BTN1 が押された場合は EEPROM を順に再生する
+				} else if(PIN_Control_Key == (1<<1)) {
+					PIN_Control_Key = 0;
+					VoiceNum ++;
+					if (VoiceNum >= EEPROM_Files[PWM_PCMPLAY_ANY]) VoiceNum = 0;		//最大数に達したら 0 に戻す
+					EEPROM_Play(PWM_PCMPLAY_ANY, VoiceNum);
+				} else {
+					//BTN0とBTN1 が押された場合は 停止する
+					//どれでもなければキー押下を解除
+					PIN_Control_Key = 0;
+				}
+				break;
+			case _PLAYMODE_SPLIT:
+				//内蔵データを MMLと PCM に分けて再生するモード=========
+				//完全にキー押下が解除されるまで待つ
+				PIN_Control_WaitKeyOff(0);
+				//BTN0 が押された場合は PCM を順に再生する
+				if (PIN_Control_Key == (1<<0) && EEPROM_Files[PWM_PCMPLAY_PCM] > 0) {
+					PIN_Control_Key = 0;
+					EEPROM_Play(PWM_PCMPLAY_PCM, VoiceNum ++);
+					if (VoiceNum >= EEPROM_Files[PWM_PCMPLAY_PCM]) VoiceNum = 0;	//最大数に達したら 0 に戻す
+					//BTN1 が押された場合は MML を順に再生する
+				} else if(PIN_Control_Key == (1<<1) && EEPROM_Files[PWM_PCMPLAY_MML] > 0) {
+					PIN_Control_Key = 0;
+					EEPROM_Play(PWM_PCMPLAY_MML, MusicNum ++);
+					if (MusicNum >= EEPROM_Files[PWM_PCMPLAY_MML]) MusicNum = 0;	//最大数に達したら 0 に戻す
+					//BTN0とBTN1 が押された場合はパラメータ1 の値（通常は0）番目を再生する
+				} else if(PIN_Control_Key == ((1<<0)|(1<<1))) {
+					PIN_Control_Key = 0;
+					EEPROM_Play(PWM_PCMPLAY_ANY, EEPROM_Params[1]);
+				} else {
+					//どれでもなければキー押下を解除
+					PIN_Control_Key = 0;
+				}
+				break;
 		}
 		//完全にキー押下が解除されるまで待つ
 		PIN_Control_WaitKeyOff(0);

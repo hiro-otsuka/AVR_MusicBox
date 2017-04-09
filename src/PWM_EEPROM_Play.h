@@ -28,7 +28,6 @@
 #include "PWM_PCM_MB.h"
 
 //********** 定数定義 **********//
-#define PWM_PCMPLAY_PARAMS		32		//EEPROM から読み込むパラメータの最大サイズ（ <= EEPROM_ARRAY_BUFF_MAX であること）
 #define PWM_PCMPLAY_READSIZE	32		//EEPROM から一度に読み込むサイズ（ <= EEPROM_ARRAY_BUFF_MAX であること）
 #define PWM_PCMPLAY_TIMEOUT		5		//EEPROM の検出にかける再実行回数
 #define PWM_PCMPLAY_ANY			0		//EEPROM で再生するファイルの種類＝両方

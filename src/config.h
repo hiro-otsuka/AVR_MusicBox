@@ -14,6 +14,7 @@
  * 更新履歴：
  *  2017/01/29 新規作成(Hiro OTSUKA)
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
+ *  2017/04/09 機能追加(Hiro OTSUKA) シリアル通信モード等のための設定項目を追加
  *
  */
 
@@ -40,8 +41,11 @@
 #define	MUSIC_SCORE_CHANNELS	3		//チャネル数（CPU性能に依存. ATTiny85 16MHz で MUSIC_PLAY_FREQ=16000の場合、3が最大）
 #define MUSIC_PLAY_FREQ			16000	//SINE波再生の解像度（8000にすると高音が歪む）
 #define PWM_SOUND_FREQ			32000	//PCM再生解像度（8000,16000,32000が選択可能）
-#define PIN_CONTROL_WAIT		50		//BTN押下時のチャタリング防止時間の長さ(ms)＝最短反応速度
+#define PIN_CONTROL_WAIT		50		//BTN押下時のチャタリング防止時間の長さ(ms)＝最短反応速度以外
+#define PIN_CONTROL_WAIT_SERIAL	5		//シリアル通信時のチャタリング防止時間の長さ(ms)＝最短反応速度
+#define PWM_PCMPLAY_PARAMS		32		//EEPROM から読み込むパラメータの最大サイズ（ <= EEPROM_ARRAY_BUFF_MAX であること）
 #define MML_PREREAD_NUM			8		//EEPROM からメモリ上に一度に読み込む MML数
+#define PIN_SERIAL_BTN			12		//シリアル通信時に指定されうるボタンの数
 
 //********** ピン定義 **********//
 // BTN/LED の選択

@@ -16,28 +16,30 @@
  *  2017/01/29 新規作成(Hiro OTSUKA)
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *  2017/02/25 機能追加(Hiro OTSUKA) キー状態を確認する機能を追加
- *  2017/04/07 構成変更(Hiro OTSUKA) ピン設定の互換性とエラーチェックを向上
- *  2017/04/09 構成変更(Hiro OTSUKA) 初期化処理を整理し、待ち時間設定を可変に
  *
  */
 
 #include <avr/interrupt.h>
-#include "PIN_Control.h"
+#include "PIN_Control_PUI.h"
 
 //********** 変数定義 **********//
 //BTNの押下状態を参照可能（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
-volatile uint8_t PIN_Control_Key;
-volatile uint8_t PIN_Control_Wait;
+volatile uint16_t PIN_Control_PUI_Key;
+volatile uint8_t  PIN_Control_PUI_Wait_Boot;
+volatile uint8_t  PIN_Control_PUI_Wait_Btn;
+volatile uint8_t  PIN_Control_PUI_Wait_Serial;
 
 //********** 外部関数 **********//
-//=============================
 //ピンアサインと割り込み処理の初期化
-void PIN_Control_Init()
+//=============================
+void PIN_Control_PUI_Init()
 {
-	PIN_Control_Key = 0;
-	PIN_Control_Wait = 100;	//待ち時間は仮で 100ms に設定
-	
-	//ピンアサイン初期化	
+	PIN_Control_PUI_Key = 0;
+	PIN_Control_PUI_Wait_Boot = 100;	//待ち時間は仮で 100ms に設定
+	PIN_Control_PUI_Wait_Btn = 100;		//待ち時間は仮で 100ms に設定
+	PIN_Control_PUI_Wait_Serial = 100;	//待ち時間は仮で 100ms に設定
+
+	//ピンアサインの初期化
 #if defined(PIN_BTN0_DDR)
 	PIN_BTN0_DDR; PIN_BTN0_PORT;
 #elif defined(PIN_LED0_DDR)
@@ -86,57 +88,96 @@ void PIN_Control_Init()
 	PIN_LED7_DDR; PIN_LED7_OFF;
 #endif
 
-#ifdef _PLAYING_ENABLE
-	PIN_PLAYING_DDR; PIN_PLAYING_ON;
+#if defined(PIN_BTN8_DDR)
+	PIN_BTN8_DDR; PIN_BTN8_PORT;
+#elif defined(PIN_LED8_DDR)
+	PIN_LED8_DDR; PIN_LED8_OFF;
 #endif
 
-	//割り込み処理の初期化
+#if defined(PIN_BTN9_DDR)
+	PIN_BTN9_DDR; PIN_BTN9_PORT;
+#elif defined(PIN_LED9_DDR)
+	PIN_LED9_DDR; PIN_LED9_OFF;
+#endif
+
+#if defined(PIN_BTN10_DDR)
+	PIN_BTN10_DDR; PIN_BTN10_PORT;
+#elif defined(PIN_LED10_DDR)
+	PIN_LED10_DDR; PIN_LED10_OFF;
+#endif
+
+#if defined(PIN_BTN11_DDR)
+	PIN_BTN11_DDR; PIN_BTN11_PORT;
+#elif defined(PIN_LED11_DDR)
+	PIN_LED11_DDR; PIN_LED11_OFF;
+#endif
+
+	PIN_SERIAL0_DDR; PIN_SERIAL0_OFF;
+	PIN_SERIAL1_DDR; PIN_SERIAL1_OFF;
+	
+	PIN_ISPLAYING_DDR;
+	
+	//割り込み処理を初期化
 	PIN_CHANGE_INT_INIT;
 	PIN_CHANGE_INT_ENBL;
 
-#if defined(PIN_BTN0_DDR)
+#if defined(PIN_BTN0_INT)
 	PIN_BTN0_INT;
 #endif
-#if defined(PIN_BTN1_DDR)
+#if defined(PIN_BTN1_INT)
 	PIN_BTN1_INT;
 #endif
-#if defined(PIN_BTN2_DDR)
+#if defined(PIN_BTN2_INT)
 	PIN_BTN2_INT;
 #endif
-#if defined(PIN_BTN3_DDR)
+#if defined(PIN_BTN3_INT)
 	PIN_BTN3_INT;
 #endif
-#if defined(PIN_BTN4_DDR)
+#if defined(PIN_BTN4_INT)
 	PIN_BTN4_INT;
 #endif
-#if defined(PIN_BTN5_DDR)
+#if defined(PIN_BTN5_INT)
 	PIN_BTN5_INT;
 #endif
-#if defined(PIN_BTN6_DDR)
+#if defined(PIN_BTN6_INT)
 	PIN_BTN6_INT;
 #endif
-#if defined(PIN_BTN7_DDR)
+#if defined(PIN_BTN7_INT)
 	PIN_BTN7_INT;
+#endif
+#if defined(PIN_BTN8_INT)
+	PIN_BTN8_INT;
+#endif
+#if defined(PIN_BTN9_INT)
+	PIN_BTN9_INT;
+#endif
+#if defined(PIN_BTN10_INT)
+	PIN_BTN10_INT;
+#endif
+#if defined(PIN_BTN11_INT)
+	PIN_BTN11_INT;
 #endif
 }
 
 //=============================
 //ボタン待ち時間設定
-//	引数：ボタン安定までの待ち時間（ms）
-void PIN_Control_SetWait(uint8_t wait)
+//	引数：ボタン安定までの待ち時間（ms）、再生モジュールの起動時間（ms）、シリアル通信の待ち時間（ms）
+void PIN_Control_PUI_SetWait(uint8_t wait, uint8_t boot, uint8_t serial)
 {
-	PIN_Control_Wait = wait;	//指定された待ち時間を設定
+	PIN_Control_PUI_Wait_Btn = wait;		//指定された待ち時間を設定
+	PIN_Control_PUI_Wait_Boot = boot;		//指定された待ち時間を設定
+	PIN_Control_PUI_Wait_Serial = serial;	//指定された待ち時間を設定
 }
 
 //=============================
 //BTNがすべて離されるのを待つ
 //	引数：対象マスク 0=Wait（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
-void PIN_Control_WaitKeyOff(uint8_t waitmask)
+void PIN_Control_PUI_WaitKeyOff(uint16_t waitmask)
 {
 	uint8_t WaitCount;
 	
 	WaitCount = 0;
-	while(WaitCount < PIN_Control_Wait) {
+	while(WaitCount < PIN_Control_PUI_Wait_Btn) {
 		if (0
 
 #if defined(PIN_BTN0_DDR)
@@ -163,6 +204,18 @@ void PIN_Control_WaitKeyOff(uint8_t waitmask)
 #if defined(PIN_BTN7_DDR)
 		|| (PIN_BTN7_PIN == 0 && (waitmask & 1 << 7) == 0)
 #endif
+#if defined(PIN_BTN8_DDR)
+		|| (PIN_BTN8_PIN == 0 && (waitmask & 1 << 8) == 0)
+#endif
+#if defined(PIN_BTN9_DDR)
+		|| (PIN_BTN9_PIN == 0 && (waitmask & 1 << 9) == 0)
+#endif
+#if defined(PIN_BTN10_DDR)
+		|| (PIN_BTN10_PIN == 0 && (waitmask & 1 << 10) == 0)
+#endif
+#if defined(PIN_BTN11_DDR)
+		|| (PIN_BTN11_PIN == 0 && (waitmask & 1 << 11) == 0)
+#endif
 		) WaitCount = 0;
 		else WaitCount ++;
 		_delay_ms(1);
@@ -172,12 +225,12 @@ void PIN_Control_WaitKeyOff(uint8_t waitmask)
 //=============================
 //BTNがすべて押されるのを待つ
 //	引数：対象マスク 0=Wait（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
-void PIN_Control_WaitKeyOn(uint8_t waitmask)
+void PIN_Control_PUI_WaitKeyOn(uint16_t waitmask)
 {
 	uint8_t WaitCount;
 	
 	WaitCount = 0;
-	while(WaitCount < PIN_Control_Wait) {
+	while(WaitCount < PIN_Control_PUI_Wait_Btn) {
 		if (0
 
 #if defined(PIN_BTN0_DDR)
@@ -204,6 +257,18 @@ void PIN_Control_WaitKeyOn(uint8_t waitmask)
 #if defined(PIN_BTN7_DDR)
 		|| (PIN_BTN7_PIN == 1 && (waitmask & 1 << 7) == 0)
 #endif
+#if defined(PIN_BTN8_DDR)
+		|| (PIN_BTN8_PIN == 1 && (waitmask & 1 << 8) == 0)
+#endif
+#if defined(PIN_BTN9_DDR)
+		|| (PIN_BTN9_PIN == 1 && (waitmask & 1 << 9) == 0)
+#endif
+#if defined(PIN_BTN10_DDR)
+		|| (PIN_BTN10_PIN == 1 && (waitmask & 1 << 10) == 0)
+#endif
+#if defined(PIN_BTN11_DDR)
+		|| (PIN_BTN11_PIN == 1 && (waitmask & 1 << 11) == 0)
+#endif
 		) WaitCount = 0;
 		else WaitCount ++;
 		_delay_ms(1);
@@ -213,9 +278,9 @@ void PIN_Control_WaitKeyOn(uint8_t waitmask)
 //=============================
 //BTNのその瞬間の押下状態を調べる
 //	戻値：BTNの押下状態（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
-volatile uint8_t PIN_Control_GetKey()
+volatile uint16_t PIN_Control_PUI_GetKey()
 {
-	uint8_t KeyNow = 0;
+	uint16_t KeyNow = 0;
 	
 #if defined(PIN_BTN0_DDR)
 	if (PIN_BTN0_PIN == 0) KeyNow |= 1 << 0;
@@ -241,18 +306,51 @@ volatile uint8_t PIN_Control_GetKey()
 #if defined(PIN_BTN7_DDR)
 	if (PIN_BTN7_PIN == 0) KeyNow |= 1 << 7;
 #endif
+#if defined(PIN_BTN8_DDR)
+	if (PIN_BTN8_PIN == 0) KeyNow |= 1 << 8;
+#endif
+#if defined(PIN_BTN9_DDR)
+	if (PIN_BTN9_PIN == 0) KeyNow |= 1 << 9;
+#endif
+#if defined(PIN_BTN10_DDR)
+	if (PIN_BTN10_PIN == 0) KeyNow |= 1 << 10;
+#endif
+#if defined(PIN_BTN11_DDR)
+	if (PIN_BTN11_PIN == 0) KeyNow |= 1 << 11;
+#endif
 	return KeyNow;
 }
 
 //=============================
-//外部のオペアンプをON/OFF制御(ピンが有効な場合)
-//	引数：0=OFF/1=ON
-void PIN_Control_Playing(uint8_t isOn)
+//外部の再生モジュールにシリアル通信
+//	引数：送信する数値
+void PIN_Control_PUI_Serial(uint8_t number)
 {
-#ifdef _PLAYING_ENABLE
-	if (isOn) PIN_PLAYING_ON;
-	else PIN_PLAYING_OFF;
-#endif
+	//通信開始
+	PIN_SERIAL1_OFF;
+	PIN_SERIAL0_ON;
+	for(uint8_t i = 0; i < PIN_Control_PUI_Wait_Boot; i++) _delay_ms(1);
+	for(uint8_t i = 0; i < (PIN_Control_PUI_Wait_Serial << 1); i++) _delay_ms(1);
+	//数値を送信
+	for (uint8_t i = 0; i < number; i++) {
+		PIN_SERIAL1_ON;
+		for(uint8_t i = 0; i < (PIN_Control_PUI_Wait_Serial << 1); i++) _delay_ms(1);
+		PIN_SERIAL1_OFF;
+		for(uint8_t i = 0; i < (PIN_Control_PUI_Wait_Serial << 1); i++) _delay_ms(1);
+	}
+	//通信終了
+	PIN_SERIAL0_OFF;
+	for(uint8_t i = 0; i < (PIN_Control_PUI_Wait_Serial << 1); i++) _delay_ms(1);
+	for(uint8_t i = 0; i < PIN_Control_PUI_Wait_Boot; i++) _delay_ms(1);
+}
+
+//=============================
+//外部の再生モジュールのON/OFFを取得
+//	戻値：0=OFF/1=ON
+uint8_t PIN_Control_PUI_isPlaying()
+{
+	if (PIN_ISPLAYING) return 0;
+	return 1;
 }
 
 //********** 割込関数 **********//
@@ -261,99 +359,63 @@ void PIN_Control_Playing(uint8_t isOn)
 ISR(PIN_CHANGE_INT_VECT)
 {
 #if defined(PIN_BTN0_DDR)
-	if (PIN_BTN0_PIN == 0 && (PIN_Control_Key & (1 << 0)) == 0)  {
-#if !defined(PIN_BTN0_INT)
-		if (PWM_PCM_Playing == 0) {
-#endif
-			PIN_Control_Key |= (1 << 0);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN0_INT)
-		}
-#endif
+	if (PIN_BTN0_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 0);
 	}
 #endif
 #if defined(PIN_BTN1_DDR)
-	if (PIN_BTN1_PIN == 0 && (PIN_Control_Key & (1 << 1)) == 0)  {
-#if !defined(PIN_BTN1_INT)
-		if (PWM_PCM_Playing == 0) {
-#endif
-			PIN_Control_Key |= (1 << 1);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN1_INT)
-		}
-#endif
+	if (PIN_BTN1_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 1);
 	}
 #endif
 #if defined(PIN_BTN2_DDR)
-	if (PIN_BTN2_PIN == 0 && (PIN_Control_Key & (1 << 2)) == 0)  {
-#if !defined(PIN_BTN2_INT)
-		if (PWM_PCM_Playing == 0) {
-#endif
-			PIN_Control_Key |= (1 << 2);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN2_INT)
-		}
-#endif
+	if (PIN_BTN2_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 2);
 	}
 #endif
 #if defined(PIN_BTN3_DDR)
-	if (PIN_BTN3_PIN == 0 && (PIN_Control_Key & (1 << 3)) == 0)  {
-#if !defined(PIN_BTN3_INT)
-		if (PWM_PCM_Playing == 0) {
-#endif
-			PIN_Control_Key |= (1 << 3);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN3_INT)
-		}
-#endif
+	if (PIN_BTN3_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 3);
 	}
 #endif
 #if defined(PIN_BTN4_DDR)
-	if (PIN_BTN4_PIN == 0 && (PIN_Control_Key & (1 << 4)) == 0)  {
-#if !defined(PIN_BTN4_INT)
-		if (PWM_PCM_Playing == 0) {
-#endif
-			PIN_Control_Key |= (1 << 4);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN4_INT)
-		}
-#endif
+	if (PIN_BTN4_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 4);
 	}
 #endif
 #if defined(PIN_BTN5_DDR)
-	if (PIN_BTN5_PIN == 0 && (PIN_Control_Key & (1 << 5)) == 0)  {
-#if !defined(PIN_BTN5_INT)
-		if (PWM_PCM_Playing == 0) {
-#endif
-			PIN_Control_Key |= (1 << 5);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN5_INT)
-		}
-#endif
+	if (PIN_BTN5_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 5);
 	}
 #endif
 #if defined(PIN_BTN6_DDR)
-	if (PIN_BTN6_PIN == 0 && (PIN_Control_Key & (1 << 6)) == 0)  {
-#if !defined(PIN_BTN6_INT)
-		if (PWM_PCM_Playing == 0) {
-#endif
-			PIN_Control_Key |= (1 << 6);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN6_INT)
-		}
-#endif
+	if (PIN_BTN6_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 6);
 	}
 #endif
 #if defined(PIN_BTN7_DDR)
-	if (PIN_BTN7_PIN == 0 && (PIN_Control_Key & (1 << 7)) == 0)  {
-#if !defined(PIN_BTN7_INT)
-		if (PWM_PCM_Playing == 0) {
+	if (PIN_BTN7_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 7);
+	}
 #endif
-			PIN_Control_Key |= (1 << 7);
-			PWM_PCM_Playing = 0;
-#if !defined(PIN_BTN7_INT)
-		}
+#if defined(PIN_BTN8_DDR)
+	if (PIN_BTN8_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 8);
+	}
 #endif
+#if defined(PIN_BTN9_DDR)
+	if (PIN_BTN9_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 9);
+	}
+#endif
+#if defined(PIN_BTN10_DDR)
+	if (PIN_BTN10_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 10);
+	}
+#endif
+#if defined(PIN_BTN11_DDR)
+	if (PIN_BTN11_PIN == 0)  {
+		PIN_Control_PUI_Key |= (1 << 11);
 	}
 #endif
 }
