@@ -1,21 +1,20 @@
 /*
- * PIN_Control.c
+ * PIN_Control_PUI.c
  *
  * 概要：
  *  プロジェクトごとに定義されたピンアサイン情報に従って、
  *  割り込み処理やキー入力の管理を行うモジュール
  *
  * 使用方法等：
- *  PIN_Control を使用するプロジェクトにインポートして使用
+ *  PIN_Control_PUI を使用するプロジェクトにインポートして使用
  *
  * ライセンス：
  *  Copyright (c) 2017, Hiro OTSUKA All rights reserved.
  *  2条項BSDライセンス/2 clause BSD license（同梱のLICENSE.md参照/See LICENSE.md）
  *
  * 更新履歴：
- *  2017/01/29 新規作成(Hiro OTSUKA)
- *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
- *  2017/02/25 機能追加(Hiro OTSUKA) キー状態を確認する機能を追加
+ *  2017/04/06 新規作成(Hiro OTSUKA)
+ *  2017/04/09 構成変更(Hiro OTSUKA) 初期化処理を整理し、待ち時間設定を可変に
  *
  */
 
