@@ -18,6 +18,7 @@
  *  2017/02/18 さらにコードを整理し、サブパート定義とループの機能を追加
  *  2017/02/19 拍、テンポ、キーを途中で変更する機能を追加、複付点音符に対応
  *  2017/03/11 GUIからの呼び出しに対応するため出力方法を変更
+ *  2017/04/16 行数カウント時のバグを修正
  *
  */
 
@@ -76,7 +77,7 @@ namespace commonfunc {
 	// タイトル
 	void	title()
 	{
-		cerr << "MML2BIN.EXE ATTiny85 MusicBox用MML アセンブルプログラム Ver 1.00 (C)Hiro OTSUKA" << endl;
+		cerr << "MML2BIN.EXE ATTiny85 MusicBox用MML アセンブルプログラム Ver 1.01 (C)Hiro OTSUKA" << endl;
 	}
 	// 使い方を表示
 	void	usage()
@@ -258,6 +259,7 @@ char	clsFILE :: getd(int check)
 		if (oldch != 0) {
 			ch = oldch;
 			oldch = 0;
+			if (ch == '\n') linenum --;	//後で二重加算になるので減算しておく
 		}
 		// ない場合は1文字読み込む
 		else
