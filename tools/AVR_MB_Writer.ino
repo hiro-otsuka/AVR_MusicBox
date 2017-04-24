@@ -17,6 +17,7 @@
  *  2017/02/17 個別に公開していたものを ATTiny85 のソフトと統合して公開
  *  2017/03/11 GUIと連動するため EEPROM_write から分岐し、Fuseリセット・フラッシュ書き込み機能を追加して公開
  *  2017/04/01 AVR_MB の機能変更にあわせ、複数の EEPROM をまとめて扱うよう機能変更
+ *  2017/04/22 ATTiny85 の EEPROM 書き込み機能を追加
  *
  */
 
@@ -65,11 +66,13 @@ const String INF_NULL = "";
 #define  WAIT_START 5000  //Wait Start(microsecond)
 #define  WAIT_STEP  50    //Wait Step(microsecond)
 #define  WAIT_END   10000 //Wait End(microsecond)
-#define  WAIT_COUNT 32    //Wait Count(milisecond)
+#define  WAIT_COUNT 128   //Wait Count(milisecond)
 
 #define  HFUSE  0x747C
 #define  LFUSE  0x646C
 #define  EFUSE  0x666E
+#define  EESAVE   0x08
+#define  RSTDISBL 0x80
 
 // Define ATTiny85 signature
 #define  ATTINY85   0x930B
@@ -575,9 +578,9 @@ void Fuse_reset(int Mode) {
   if (Mode == 0) {        //Initialize
     fuse_l = 0xC1; fuse_h = 0xD7; fuse_e = 0xFF;
   } else if(Mode == 2) {  //RST Disable
-    fuse_h &= ~(0x80);
+    fuse_h &= ~(RSTDISBL);
   } else {                //RST Enable
-    fuse_h |= 0x80;
+    fuse_h |= RSTDISBL;
   }
   Fuse_print("'Change ", fuse_l, fuse_h, fuse_e);
   
@@ -597,7 +600,7 @@ void Fuse_reset(int Mode) {
 void Flash_write()
 {
   unsigned int  fAddr = 0;
-  unsigned char fChr_l, fChr_h, fChr_addr;
+  unsigned char fChr_l, fChr_h;
   unsigned char inByte;
   int isEnd = 0;
 
@@ -659,6 +662,79 @@ void Flash_write()
   HVS_end();
 }
 
+// EEPROM Write ======================================================================
+void EEPROM_write()
+{
+  unsigned int  fAddr = 0;
+  unsigned char inByte;
+  int isEnd = 0;
+
+  if(HVS_start()) return;
+  Serial.print(INF_HEX);
+  Serial.print("?");
+  HEX_start();
+  //強制EEPROM初期化
+  byte fuse_l, fuse_h, fuse_e;
+  //Fuse一時保存
+  Fuse_read (&fuse_l, &fuse_h, &fuse_e);
+  //EEPROM保護解除
+  Fuse_write(LFUSE, fuse_l);
+  Fuse_write(HFUSE, fuse_h | EESAVE);
+  Fuse_write(EFUSE, fuse_e);
+  // チップ消去
+  HVS_SerialOut(0x80, 0x4C);
+  HVS_SerialOut(0x00, 0x64);
+  HVS_SerialOut(0x00, 0x6C);
+  delay(10);
+  // EEPROM保護復帰
+  Fuse_write(LFUSE, fuse_l);
+  Fuse_write(HFUSE, fuse_h);
+  Fuse_write(EFUSE, fuse_e);
+  // 書き込みに移行
+  HVS_SerialOut(0x11, 0x4C);
+  while(!isEnd) {
+    while(!Serial.available());
+    
+    inByte = Serial.read();
+    
+    switch(HEX_decode(inByte)) {
+      unsigned char fAddr_l, fAddr_h;
+      case HEX_A_START:
+        //書き込みの開始
+        HexText_write(fAddr);
+        Serial.print(" ");
+        break;
+      case HEX_A_DATA:
+        //アドレス保存
+        fAddr_h = fAddr >> 6;
+        fAddr_l = fAddr & 0x3F;
+        //書き込みの実施
+        HVS_SerialOut(fAddr_l,    0x0C);
+        HVS_SerialOut(fAddr_h,    0x1C);
+        HVS_SerialOut(HEX_inData, 0x2C);
+        HVS_SerialOut(0x00,       0x6D);
+        HVS_SerialOut(0x00,       0x64);
+        HVS_SerialOut(0x00,       0x6C);
+        delay(10);
+        Serial.print(".");
+        fAddr ++;
+
+        break;
+      case HEX_A_EOL:
+        break;
+      case HEX_A_NONE:
+        break;
+      case HEX_A_ERR:
+      case HEX_A_END:
+        HVS_SerialOut(0x00, 0x4C);
+        isEnd = 1;
+        break;
+    }
+  }
+  HVS_end();
+}
+
+
 // for main ========================================================================
 void setup() {
   //for Fuse reset
@@ -690,7 +766,7 @@ void loop() {
   if (CmdEnable != 0) {
     Serial.println(INF_NULL);
     Serial.println("# ----------------------------------------");
-    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.3.0");
+    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.3.1");
     Serial.println("#                           By Hiro OTSUKA");
     Serial.println("# ----------------------------------------");
     Serial.print("'++ R/W Addr=[");
@@ -715,12 +791,13 @@ void loop() {
       Serial.println(inByte);
       CmdEnable = 1;
       Serial.println(INF_NULL);
-      Serial.println("#[h] =this help   [v] =Version");
+      Serial.println("#[h] =this help    [v] =Version");
       Serial.println("#[f] =Find I2C Addr");
-      Serial.println("#[l] =List files  [s] =Set R/W Addr");
-      Serial.println("#[w] =Write       [r] =Read");
+      Serial.println("#[l] =List files   [s] =Set R/W Addr");
+      Serial.println("#[w] =Write        [r] =Read");
       Serial.println("#[c] =Change byte");
-      Serial.println("#[z] =Fuse reset  [p] =Program write");
+      Serial.println("#[z] =Fuse reset");
+      Serial.println("#[e] =EEPROM write [p] =Program write");
       break;
     case 'F':
     case 'f':
@@ -813,6 +890,12 @@ void loop() {
       } else {
         Serial.println("!Canceled.");
       }
+      break;
+    case 'E':
+    case 'e':
+      Serial.println(inByte);
+      CmdEnable = 1;
+      EEPROM_write();
       break;
     case 'P':
     case 'p':

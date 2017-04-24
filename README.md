@@ -15,7 +15,7 @@ AVR マイコンによるオルゴール演奏・PCM再生プログラムおよ�
 AVRマイコンに本プログラムを書き込み、適切な回路を組み立てることで、最大3パートまでのオルゴール楽譜、またはモノラルPCM音源を再生する事が可能。オルゴール楽譜とPCM音源の再生は排他実行となる（同時再生は不可）。  
 オルゴール楽譜については、MML風のテキストで記述し、本プログラムに添付の変換ツールでバイナリ化する。なお、プログラム本体への組み込みも可。  
 PCM音源再生については、波形編集用のソフトウェア等により、モノラル8bit/8KHzのWAVファイルとして作成する。PCMとADPCMが再生可能。  
-楽譜データおよび WAVファイルは、HEXファイルに変換し、添付の書き込みツール等で I2C 接続の EEPROM に書き込む必要がある。
+楽譜データおよび WAVファイルは、添付の書き込みツール等で I2C 接続の EEPROM に書き込む必要がある。
 
 # 使用条件
 ## 必要ソフトウェア（開発用）
@@ -25,12 +25,13 @@ PCM音源再生については、波形編集用のソフトウェア等によ�
 例）spwave(http://www-ie.meijo-u.ac.jp/~banno/spLibs/spwave/index-j.html)
 * 楽譜データやWAVファイルをHEXファイルに変換するためのソフト  
 例）BIN2HEXGUI(https://synapse.kyoto/tips/LPC1114/page001.html)
+ ※[AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) を使用する場合は不要
 * EEPROM に HEXファイルを書き込むためのソフト  
 例）TeraTerm(https://ttssh2.osdn.jp/)  
  ※[AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) を使用する場合は不要
 * MML変換ツールコンパイル用 C++ 開発環境  
 例）Eclipse + CDT(http://mergedoc.osdn.jp/)  
- ※[AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) を使用する場合は不要
+ ※本ツール添付のバイナリファイルを使用する場合は不要
 
 ## 必要ハードウェア（開発用）
 * 前述のソフトウェアが動作するパソコン  
@@ -77,7 +78,7 @@ Windows のサウンドレコーダー等を用いて録音する。
 前述の BIN2HEXGUI 等を用いて、WAVファイルを HEXファイルに変換する。なお、BIN2HEXGUI では、変換元ファイルの拡張子が wav のままでは選択できない。いったん bin に変更してから処理する必要がある。
 
 ### EEPROM への書き込み
-Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。
+Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使う場合はHEXファイルへの変換が不要。使用方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。
 
 ## 楽譜データの作成
 ### MMLファイルの記述
@@ -95,7 +96,7 @@ EXEファイルにMMLファイルをドラッグ＆ドロップしても変換�
 前述の BIN2HEXGUI 等を用いて、HEXファイルに変換する。
 
 ### EEPROM への書き込み
-Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使った EEPROM への書き込み方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。
+Arduino 等から I2C 接続を行い、EEPROM に HEX ファイルを書き込む。添付のツールを使う場合はHEXファイルへの変換が不要。使用方法は、[README_EEPROM_RW.txt](/README_EEPROM_RW.txt) を参照。
 
 ## 制御プログラムのカスタマイズ
 ### プロジェクトの準備
@@ -115,11 +116,10 @@ Atmel Studio で新規のプロジェクトを作成し、以下の設定を行�
 * BTN0 や BTN1 に対する動作内容
 * オルゴール楽譜や PCM 音源の再生順等
 
-その他、たとえば、 BTN0 と BTN1 を使った低速シリアル通信などを実装すれば、2線で複数の楽譜・音源の再生を制御できる・・・はず。
+ATTinyのEEPROMに動作モードを書き込むことで、BTN0 と BTN1 を使った低速シリアル通信などにより、2線で仮想的な複数ボタンを使用することも可能。
 
 ### 楽譜データの内蔵
-EEPROM がなくても動作させたい場合、プログラムに楽譜情報を内蔵することが可能。
-ただし、本体のサイズが巨大になったため、サンプルプログラムの該当箇所はコメントで表記。
+EEPROM がなくても動作させたい場合、プログラムに楽譜情報を内蔵することが可能だが、本体サイズが巨大になったため、サンプルプログラムの該当箇所はコメントで表記。
 使用する場合、[src_mml/](/src_mml/) ディレクトリに格納されたファイルを参考に、楽譜情報をプログラムする。
 * [MML_HOMusic_C3.h](/src_mml/MML_HOMusic_C3.h)  
 一応、3パート再生のサンプル音楽。
@@ -135,6 +135,10 @@ AVRISP 等を用いて、AVRマイコンにプログラムを書き込む。
 # 変更履歴
 
 最新確認済みマイコン：ATTiny85, ATTiny861
+
+* 2017/04/24  以下の更新を行った  
+ 1. 複数バンクのEEPROMを一連のメモリとして扱うよう機能変更
+ 2. 動作モードやピンのプルアップ有無をEEPROMから読み込むよう変更
 
 * 2017/03/12  以下の更新を行った  
  1. [AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) との連携のための調整を実施

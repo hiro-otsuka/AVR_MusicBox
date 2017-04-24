@@ -18,6 +18,7 @@
  *  2017/02/25 機能追加(Hiro OTSUKA) キー状態を確認する機能を追加
  *  2017/04/07 構成変更(Hiro OTSUKA) ピン設定の互換性とエラーチェックを向上
  *  2017/04/09 構成変更(Hiro OTSUKA) 初期化処理を整理し、待ち時間設定を可変に
+ *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否をパラメータで指定できるよう変更
  *
  */
 
@@ -32,56 +33,72 @@ volatile uint8_t PIN_Control_Wait;
 //********** 外部関数 **********//
 //=============================
 //ピンアサインと割り込み処理の初期化
-void PIN_Control_Init()
+void PIN_Control_Init(uint8_t isNotPU)
 {
 	PIN_Control_Key = 0;
 	PIN_Control_Wait = 100;	//待ち時間は仮で 100ms に設定
 	
 	//ピンアサイン初期化	
 #if defined(PIN_BTN0_DDR)
-	PIN_BTN0_DDR; PIN_BTN0_PORT;
+	PIN_BTN0_DDR;
+	if (isNotPU) PIN_BTN0_PORT_NO;
+	else PIN_BTN0_PORT_PU;
 #elif defined(PIN_LED0_DDR)
 	PIN_LED0_DDR; PIN_LED0_OFF;
 #endif
 
 #if defined(PIN_BTN1_DDR)
-	PIN_BTN1_DDR; PIN_BTN1_PORT;
+	PIN_BTN1_DDR;
+	if (isNotPU) PIN_BTN1_PORT_NO;
+	else PIN_BTN1_PORT_PU;
 #elif defined(PIN_LED1_DDR)
 	PIN_LED1_DDR; PIN_LED1_OFF;
 #endif
 
 #if defined(PIN_BTN2_DDR)
-	PIN_BTN2_DDR; PIN_BTN2_PORT;
+	PIN_BTN2_DDR;
+	if (isNotPU) PIN_BTN2_PORT_NO;
+	else PIN_BTN2_PORT_PU;
 #elif defined(PIN_LED2_DDR)
 	PIN_LED2_DDR; PIN_LED2_OFF;
 #endif
 
 #if defined(PIN_BTN3_DDR)
-	PIN_BTN3_DDR; PIN_BTN3_PORT;
+	PIN_BTN3_DDR;
+	if (isNotPU) PIN_BTN3_PORT_NO;
+	else PIN_BTN3_PORT_PU;
 #elif defined(PIN_LED3_DDR)
 	PIN_LED3_DDR; PIN_LED3_OFF;
 #endif
 
 #if defined(PIN_BTN4_DDR)
-	PIN_BTN4_DDR; PIN_BTN4_PORT;
+	PIN_BTN4_DDR;
+	if (isNotPU) PIN_BTN4_PORT_NO;
+	else PIN_BTN4_PORT_PU;
 #elif defined(PIN_LED4_DDR)
 	PIN_LED4_DDR; PIN_LED4_OFF;
 #endif
 
 #if defined(PIN_BTN5_DDR)
-	PIN_BTN5_DDR; PIN_BTN5_PORT;
+	PIN_BTN5_DDR;
+	if (isNotPU) PIN_BTN5_PORT_NO;
+	else PIN_BTN5_PORT_PU;
 #elif defined(PIN_LED5_DDR)
 	PIN_LED5_DDR; PIN_LED5_OFF;
 #endif
 
 #if defined(PIN_BTN6_DDR)
-	PIN_BTN6_DDR; PIN_BTN6_PORT;
+	PIN_BTN6_DDR;
+	if (isNotPU) PIN_BTN6_PORT_NO;
+	else PIN_BTN6_PORT_PU;
 #elif defined(PIN_LED6_DDR)
 	PIN_LED6_DDR; PIN_LED6_OFF;
 #endif
 
 #if defined(PIN_BTN7_DDR)
-	PIN_BTN7_DDR; PIN_BTN7_PORT;
+	PIN_BTN7_DDR;
+	if (isNotPU) PIN_BTN7_PORT_NO;
+	else PIN_BTN7_PORT_PU;
 #elif defined(PIN_LED7_DDR)
 	PIN_LED7_DDR; PIN_LED7_OFF;
 #endif

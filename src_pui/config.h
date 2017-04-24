@@ -28,6 +28,7 @@
 #define PIN_SERIAL_WAIT_SERIAL	10		//Serial通信時の待機時間の長さ(ms)＝AVR_MBのPIN_CONTROL_WAITとあわせる
 
 //********** ピン定義 **********//
+#define _PIN_BTN_PU	//マイコンでのプルアップ設定
 // BTN/LED の選択
 // _PINx_LED を定義= PINx を出力(LED)として使う
 // _PINx_BTN を定義= PINx を入力(BTN)として使う
@@ -44,18 +45,12 @@
 #define _PIN4_BTN_INT
 #define _PIN5_BTN
 #define _PIN5_BTN_INT
-//#define _PIN6_BTN
-//#define _PIN6_BTN_INT
-//#define _PIN7_BTN
-//#define _PIN7_BTN_INT
-//#define _PIN8_BTN
-//#define _PIN8_BTN_INT
-//#define _PIN9_BTN
-//#define _PIN9_BTN_INT
-//#define _PIN10_BTN
-//#define _PIN10_BTN_INT
-//#define _PIN11_BTN
-//#define _PIN11_BTN_INT
+#define _PIN6_BTN
+#define _PIN6_BTN_INT
+#define _PIN7_BTN
+#define _PIN7_BTN_INT
+#define _PIN8_BTN
+#define _PIN8_BTN_INT
 
 //#define _PIN0_LED
 //#define _PIN1_LED
@@ -66,8 +61,5 @@
 //#define _PIN6_LED
 //#define _PIN7_LED
 //#define _PIN8_LED
-//#define _PIN9_LED
-//#define _PIN10_LED
-//#define _PIN11_LED
 
 #endif /* CONFIG_H_ */

@@ -40,6 +40,7 @@
  *  2017/02/25 機能追加(Hiro OTSUKA) キー状態を確認する機能を追加
  *  2017/04/07 構成変更(Hiro OTSUKA) ピン設定の互換性とエラーチェックを向上
  *  2017/04/09 構成変更(Hiro OTSUKA) 初期化処理を整理し、待ち時間設定を可変に
+ *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否をパラメータで指定できるよう変更
  *
  */
 
@@ -137,21 +138,24 @@
 //for Physical User Interface
 #if defined(_PIN0_BTN)
  #define PIN_BTN0_DDR		DDRB &= ~(1 << PINB1)
- #define PIN_BTN0_PORT		PORTB &= ~(1 << PINB1)
+ #define PIN_BTN0_PORT_PU	PORTB |= (1 << PINB1)	//Pull Up
+ #define PIN_BTN0_PORT_NO	PORTB &= ~(1 << PINB1)	//not Pull Up
  #define PIN_BTN0_PIN		(PINB & (1 << PINB1))
  #define PIN_BTN0_INT		PCMSK |= (1 << PCINT1)
 #endif
 #if defined(_PIN1_BTN)
  #define PIN_BTN1_DDR		DDRB &= ~(1 << PINB3)
- #define PIN_BTN1_PORT		PORTB &= ~(1 << PINB3)
+ #define PIN_BTN1_PORT_PU	PORTB |= (1 << PINB3)	//Pull Up
+ #define PIN_BTN1_PORT_NO	PORTB &= ~(1 << PINB3)	//not Pull Up
  #define PIN_BTN1_PIN		(PINB & (1 << PINB3))
  #define PIN_BTN1_INT		PCMSK |= (1 << PCINT3)
 #endif
 #if defined(_PIN2_BTN)
-#define PIN_BTN2_DDR		DDRB &= ~(1 << PINB5)
-#define PIN_BTN2_PORT		PORTB &= ~(1 << PINB5)
-#define PIN_BTN2_PIN		(PINB & (1 << PINB5))
-#define PIN_BTN2_INT		PCMSK |= (1 << PCINT5)
+ #define PIN_BTN2_DDR		DDRB &= ~(1 << PINB5)
+ #define PIN_BTN2_PORT_PU	PORTB |= (1 << PINB5)	//Pull Up
+ #define PIN_BTN2_PORT_NO	PORTB &= ~(1 << PINB5)	//not Pull Up
+ #define PIN_BTN2_PIN		(PINB & (1 << PINB5))
+ #define PIN_BTN2_INT		PCMSK |= (1 << PCINT5)
 #endif
 
 #if defined(_PIN0_LED)
@@ -205,49 +209,57 @@
 //for Physical User Interface
 #if defined(_PIN0_BTN)
  #define PIN_BTN0_DDR		DDRA &= ~(1 << PINA0)
- #define PIN_BTN0_PORT		PORTA &= ~(1 << PINA0)
+ #define PIN_BTN0_PORT_PU	PORTA |= (1 << PINA0)	//Pull Up
+ #define PIN_BTN0_PORT_NO	PORTA &= ~(1 << PINA0)	//not Pull Up
  #define PIN_BTN0_PIN		(PINA & (1 << PINA0))
  #define PIN_BTN0_INT		PCMSK0 |= (1 << PCINT0)
 #endif
 #if defined(_PIN1_BTN)
  #define PIN_BTN1_DDR		DDRA &= ~(1 << PINA1)
- #define PIN_BTN1_PORT		PORTA &= ~(1 << PINA1)
+ #define PIN_BTN1_PORT_PU	PORTA |= (1 << PINA1)	//Pull Up
+ #define PIN_BTN1_PORT_NO	PORTA &= ~(1 << PINA1)	//not Pull Up
  #define PIN_BTN1_PIN		(PINA & (1 << PINA1))
  #define PIN_BTN1_INT		PCMSK0 |= (1 << PCINT1)
 #endif
 #if defined(_PIN2_BTN)
  #define PIN_BTN2_DDR		DDRA &= ~(1 << PINA2)
- #define PIN_BTN2_PORT		PORTA &= ~(1 << PINA2)
+ #define PIN_BTN2_PORT_PU	PORTA |= (1 << PINA2)	//Pull Up
+ #define PIN_BTN2_PORT_NO	PORTA &= ~(1 << PINA2)	//not Pull Up
  #define PIN_BTN2_PIN		(PINA & (1 << PINA2))
  #define PIN_BTN2_INT		PCMSK0 |= (1 << PCINT2)
 #endif
 #if defined(_PIN3_BTN)
  #define PIN_BTN3_DDR		DDRA &= ~(1 << PINA3)
- #define PIN_BTN3_PORT		PORTA &= ~(1 << PINA3)
+ #define PIN_BTN3_PORT_PU	PORTA |= (1 << PINA3)	//Pull Up
+ #define PIN_BTN3_PORT_NO	PORTA &= ~(1 << PINA3)	//not Pull Up
  #define PIN_BTN3_PIN		(PINA & (1 << PINA3))
  #define PIN_BTN3_INT		PCMSK0 |= (1 << PCINT3)
 #endif
 #if defined(_PIN4_BTN)
  #define PIN_BTN4_DDR		DDRA &= ~(1 << PINA4)
- #define PIN_BTN4_PORT		PORTA &= ~(1 << PINA4)
+ #define PIN_BTN4_PORT_PU	PORTA |= (1 << PINA4)	//Pull Up
+ #define PIN_BTN4_PORT_NO	PORTA &= ~(1 << PINA4)	//not Pull Up
  #define PIN_BTN4_PIN		(PINA & (1 << PINA4))
  #define PIN_BTN4_INT		PCMSK0 |= (1 << PCINT4)
 #endif
 #if defined(_PIN5_BTN)
  #define PIN_BTN5_DDR		DDRA &= ~(1 << PINA5)
- #define PIN_BTN5_PORT		PORTA &= ~(1 << PINA5)
+ #define PIN_BTN5_PORT_PU		PORTA |= (1 << PINA5)	//Pull Up
+ #define PIN_BTN5_PORT_NO		PORTA &= ~(1 << PINA5)	//not Pull Up
  #define PIN_BTN5_PIN		(PINA & (1 << PINA5))
  #define PIN_BTN5_INT		PCMSK0 |= (1 << PCINT5)
 #endif
 #if defined(_PIN6_BTN)
  #define PIN_BTN6_DDR		DDRA &= ~(1 << PINA6)
- #define PIN_BTN6_PORT		PORTA &= ~(1 << PINA6)
+ #define PIN_BTN6_PORT_PU	PORTA |= (1 << PINA6)	//Pull Up
+ #define PIN_BTN6_PORT_NO	PORTA &= ~(1 << PINA6)	//not Pull Up
  #define PIN_BTN6_PIN		(PINA & (1 << PINA6))
  #define PIN_BTN6_INT		PCMSK0 |= (1 << PCINT6)
 #endif
 #if defined(_PIN7_BTN)
  #define PIN_BTN7_DDR		DDRA &= ~(1 << PINA7)
- #define PIN_BTN7_PORT		PORTA &= ~(1 << PINA7)
+ #define PIN_BTN7_PORT_PU	PORTA |= (1 << PINA7)	//Pull Up
+ #define PIN_BTN7_PORT_NO	PORTA &= ~(1 << PINA7)	//not Pull Up
  #define PIN_BTN7_PIN		(PINA & (1 << PINA7))
  #define PIN_BTN7_INT		PCMSK0 |= (1 << PCINT7)
 #endif
@@ -301,7 +313,7 @@ extern volatile uint8_t PIN_Control_Key;
 
 //********** 関数定義 **********//
 //ピンアサインと割り込み処理の初期化
-void PIN_Control_Init();
+void PIN_Control_Init(uint8_t);
 
 //ボタン待ち時間設定
 //	引数：ボタン安定までの待ち時間（ms）

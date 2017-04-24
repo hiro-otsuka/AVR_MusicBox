@@ -93,24 +93,6 @@ void PIN_Control_PUI_Init()
 	PIN_LED8_DDR; PIN_LED8_OFF;
 #endif
 
-#if defined(PIN_BTN9_DDR)
-	PIN_BTN9_DDR; PIN_BTN9_PORT;
-#elif defined(PIN_LED9_DDR)
-	PIN_LED9_DDR; PIN_LED9_OFF;
-#endif
-
-#if defined(PIN_BTN10_DDR)
-	PIN_BTN10_DDR; PIN_BTN10_PORT;
-#elif defined(PIN_LED10_DDR)
-	PIN_LED10_DDR; PIN_LED10_OFF;
-#endif
-
-#if defined(PIN_BTN11_DDR)
-	PIN_BTN11_DDR; PIN_BTN11_PORT;
-#elif defined(PIN_LED11_DDR)
-	PIN_LED11_DDR; PIN_LED11_OFF;
-#endif
-
 	PIN_SERIAL0_DDR; PIN_SERIAL0_OFF;
 	PIN_SERIAL1_DDR; PIN_SERIAL1_OFF;
 	
@@ -146,15 +128,6 @@ void PIN_Control_PUI_Init()
 #endif
 #if defined(PIN_BTN8_INT)
 	PIN_BTN8_INT;
-#endif
-#if defined(PIN_BTN9_INT)
-	PIN_BTN9_INT;
-#endif
-#if defined(PIN_BTN10_INT)
-	PIN_BTN10_INT;
-#endif
-#if defined(PIN_BTN11_INT)
-	PIN_BTN11_INT;
 #endif
 }
 
@@ -206,15 +179,6 @@ void PIN_Control_PUI_WaitKeyOff(uint16_t waitmask)
 #if defined(PIN_BTN8_DDR)
 		|| (PIN_BTN8_PIN == 0 && (waitmask & 1 << 8) == 0)
 #endif
-#if defined(PIN_BTN9_DDR)
-		|| (PIN_BTN9_PIN == 0 && (waitmask & 1 << 9) == 0)
-#endif
-#if defined(PIN_BTN10_DDR)
-		|| (PIN_BTN10_PIN == 0 && (waitmask & 1 << 10) == 0)
-#endif
-#if defined(PIN_BTN11_DDR)
-		|| (PIN_BTN11_PIN == 0 && (waitmask & 1 << 11) == 0)
-#endif
 		) WaitCount = 0;
 		else WaitCount ++;
 		_delay_ms(1);
@@ -259,15 +223,6 @@ void PIN_Control_PUI_WaitKeyOn(uint16_t waitmask)
 #if defined(PIN_BTN8_DDR)
 		|| (PIN_BTN8_PIN == 1 && (waitmask & 1 << 8) == 0)
 #endif
-#if defined(PIN_BTN9_DDR)
-		|| (PIN_BTN9_PIN == 1 && (waitmask & 1 << 9) == 0)
-#endif
-#if defined(PIN_BTN10_DDR)
-		|| (PIN_BTN10_PIN == 1 && (waitmask & 1 << 10) == 0)
-#endif
-#if defined(PIN_BTN11_DDR)
-		|| (PIN_BTN11_PIN == 1 && (waitmask & 1 << 11) == 0)
-#endif
 		) WaitCount = 0;
 		else WaitCount ++;
 		_delay_ms(1);
@@ -307,15 +262,6 @@ volatile uint16_t PIN_Control_PUI_GetKey()
 #endif
 #if defined(PIN_BTN8_DDR)
 	if (PIN_BTN8_PIN == 0) KeyNow |= 1 << 8;
-#endif
-#if defined(PIN_BTN9_DDR)
-	if (PIN_BTN9_PIN == 0) KeyNow |= 1 << 9;
-#endif
-#if defined(PIN_BTN10_DDR)
-	if (PIN_BTN10_PIN == 0) KeyNow |= 1 << 10;
-#endif
-#if defined(PIN_BTN11_DDR)
-	if (PIN_BTN11_PIN == 0) KeyNow |= 1 << 11;
 #endif
 	return KeyNow;
 }
@@ -400,21 +346,6 @@ ISR(PIN_CHANGE_INT_VECT)
 #if defined(PIN_BTN8_DDR)
 	if (PIN_BTN8_PIN == 0)  {
 		PIN_Control_PUI_Key |= (1 << 8);
-	}
-#endif
-#if defined(PIN_BTN9_DDR)
-	if (PIN_BTN9_PIN == 0)  {
-		PIN_Control_PUI_Key |= (1 << 9);
-	}
-#endif
-#if defined(PIN_BTN10_DDR)
-	if (PIN_BTN10_PIN == 0)  {
-		PIN_Control_PUI_Key |= (1 << 10);
-	}
-#endif
-#if defined(PIN_BTN11_DDR)
-	if (PIN_BTN11_PIN == 0)  {
-		PIN_Control_PUI_Key |= (1 << 11);
 	}
 #endif
 }
