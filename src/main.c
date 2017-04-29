@@ -20,6 +20,7 @@
  *  2017/04/09 機能変更(Hiro OTSUKA) 再生モードを EEPROM のパラメータから読み込むよう変更
  *  2017/04/10 バグ修正(Hiro OTSUKA) 再生モード SERIAL_NUM 時の問題を修正
  *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否と再生モードを内蔵EEPROMで指定できるよう変更
+ *  2017/04/29 構成変更(Hiro OTSUKA) シリアル通信の2モードをパラメータでの指定に統合
  *
  */
 
@@ -37,8 +38,7 @@
 //再生モードを定義（EEPROM内のパラメータファイル 0 バイト目で指定）
 #define _PLAYMODE_SPLIT			0x00	//分離再生モード(BTN0 = PCM、BTN1 = MML) ※パラメータが無い場合のデフォルト
 #define _PLAYMODE_ALL			0x01	//全再生モード(BTN0 = 戻る、BTN1 = 進む)
-#define _PLAYMODE_SERIAL_NUM	0x02	//シリアル指定モード(BTN0 押下中 BTN1 押下した回数で指定)
-#define _PLAYMODE_SERIAL_BTN	0x03	//シリアル指定モード(BTN0 押下中 BTN1 押下した回数でボタン番号を指定)
+#define _PLAYMODE_SERIAL		0x02	//シリアル指定モード(BTN0 押下中 BTN1 押下した回数で指定)
 
 int main(void)
 {
@@ -75,7 +75,7 @@ int main(void)
 	//再生前の初期設定	
 	for(uint8_t i = 0; i < PIN_SERIAL_BTN; i ++) BtnNum[i] = 0;
 	
-	if (PlayMode == _PLAYMODE_SERIAL_NUM || PlayMode == _PLAYMODE_SERIAL_BTN)
+	if (PlayMode == _PLAYMODE_SERIAL)
 		PIN_Control_SetWait(PIN_CONTROL_WAIT_SERIAL);
 	else
 		PIN_Control_SetWait(PIN_CONTROL_WAIT);
@@ -91,8 +91,7 @@ int main(void)
 			_delay_ms(30);			//オーディオアンプの起動待ち
 		}
 		switch(PlayMode) {
-			case _PLAYMODE_SERIAL_BTN:
-			case _PLAYMODE_SERIAL_NUM:
+			case _PLAYMODE_SERIAL:
 				//シリアル通信で順番を指定するモード====================
 				if (PIN_Control_Key == (1<<0)) {
 					VoiceNum = 0;
@@ -117,8 +116,11 @@ int main(void)
 					PIN_Control_Key = 0;
 					if (VoiceNum > 0) {
 						VoiceNum --;
-						//ボタン番号を指定するモードの場合
-						if (PlayMode == _PLAYMODE_SERIAL_BTN) {
+						if (EEPROM_Params[0] == 0xFF) {
+							//直接指定の場合
+							MusicNum = VoiceNum;
+						} else {
+							//ボタン番号を指定するモードの場合
 							//各ボタンに指定された範囲を演奏する
 							MusicNum = BtnNum[VoiceNum];
 							if (MusicNum < EEPROM_Params[VoiceNum]) MusicNum = EEPROM_Params[VoiceNum];
