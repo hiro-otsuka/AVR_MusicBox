@@ -21,6 +21,7 @@
  *  2017/04/10 バグ修正(Hiro OTSUKA) 再生モード SERIAL_NUM 時の問題を修正
  *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否と再生モードを内蔵EEPROMで指定できるよう変更
  *  2017/04/29 構成変更(Hiro OTSUKA) シリアル通信の2モードをパラメータでの指定に統合
+ *  2017/05/07 機能追加(Hiro OTSUKA) ボタン直接指定とパラレル通信モードを追加し、2モードのパラメータ指定方法を変更
  *
  */
 
@@ -38,13 +39,38 @@
 //再生モードを定義（EEPROM内のパラメータファイル 0 バイト目で指定）
 #define _PLAYMODE_SPLIT			0x00	//分離再生モード(BTN0 = PCM、BTN1 = MML) ※パラメータが無い場合のデフォルト
 #define _PLAYMODE_ALL			0x01	//全再生モード(BTN0 = 戻る、BTN1 = 進む)
-#define _PLAYMODE_SERIAL		0x02	//シリアル指定モード(BTN0 押下中 BTN1 押下した回数で指定)
+#define _PLAYMODE_SERIAL		0x02	//シリアル指定モード(BTN0 押下中 BTN1 押下回数で指定) ※小ピンマイコン用・EEPROMで曲数指定
+#define _PLAYMODE_NUMBER		0x03	//ボタン番号指定モード(BTN0～BTNx で直接指定) ※多ピンマイコン用・EEPROMで曲数指定
+#define _PLAYMODE_PARALLEL		0x04	//パラレル指定モード(BTN0～BTNx で２進数指定) ※多ピンマイコン用・EEPROMで曲数指定
+
+uint8_t BtnClicked[PIN_SERIAL_BTN];		//各ボタンのクリック回数（曲数でループ）
+
+//各ボタンの番号を曲番号に変換する
+int MusicNumFromBtn(uint8_t btnNum)
+{
+	uint8_t retNum;
+	uint8_t startNum = 0;
+	uint8_t endNum = 0;
+	
+	//指定されたボタン番号の開始位置を得る
+	for (uint8_t i = 0; i < btnNum; i++) startNum += EEPROM_Params[i] + 1;
+	//指定されたボタン番号の終了位置を得る
+	endNum = startNum + EEPROM_Params[btnNum] + 1;
+	//現在のクリック回数を加算する
+	retNum = BtnClicked[btnNum] + startNum;
+	//回数を超えていた場合はループさせる
+	if (retNum >= endNum) retNum = startNum;
+	//クリック回数を更新する
+	BtnClicked[btnNum] = (retNum - startNum) + 1;
+	
+	//戻り値を返す
+	return retNum;
+}
 
 int main(void)
 {
 	uint8_t MusicNum = 0;
 	uint8_t VoiceNum = 0;
-	uint8_t BtnNum[PIN_SERIAL_BTN];
 
 	//内蔵EEPROMからパラメータを取得する
 	eeprom_busy_wait();
@@ -73,7 +99,7 @@ int main(void)
 	//PWM_PCM_MB_MEM_Play(0);
 	
 	//再生前の初期設定	
-	for(uint8_t i = 0; i < PIN_SERIAL_BTN; i ++) BtnNum[i] = 0;
+	for(uint8_t i = 0; i < PIN_SERIAL_BTN; i ++) BtnClicked[i] = 0;
 	
 	if (PlayMode == _PLAYMODE_SERIAL)
 		PIN_Control_SetWait(PIN_CONTROL_WAIT_SERIAL);
@@ -91,6 +117,43 @@ int main(void)
 			_delay_ms(30);			//オーディオアンプの起動待ち
 		}
 		switch(PlayMode) {
+			case _PLAYMODE_PARALLEL:
+				//BTN0～BTNx で２進指定するモード====================
+				if (PIN_Control_Key != 0) {
+					//完全にキー押下が解除されるまで待つ
+					PIN_Control_WaitKeyOff(0);
+					//下位ボタンから押されていることを確認する
+					VoiceNum = PIN_Control_Key - 1;	//ボタンの状態がそのまま２進指定になる（ただし－１）
+					PIN_Control_Key = 0;
+					MusicNum = MusicNumFromBtn(VoiceNum);
+					while(MusicNum >= EEPROM_Files[PWM_PCMPLAY_ANY]) MusicNum -= EEPROM_Files[PWM_PCMPLAY_ANY];
+					EEPROM_Play(PWM_PCMPLAY_ANY, MusicNum);
+				} else {
+					//どれでもなければキー押下を解除
+					PIN_Control_Key = 0;
+				}
+				break;
+			case _PLAYMODE_NUMBER:
+				//BTN0～BTNx を直接指定するモード====================
+				if (PIN_Control_Key != 0) {
+					//完全にキー押下が解除されるまで待つ
+					PIN_Control_WaitKeyOff(0);
+					//下位ボタンから押されていることを確認する
+					VoiceNum = 0;
+					for (uint8_t i = 0; i < PIN_SERIAL_BTN; i++) {
+						if (PIN_Control_Key & 1) break;
+						VoiceNum ++;
+						PIN_Control_Key >>= 1;
+					}
+					PIN_Control_Key = 0;
+					MusicNum = MusicNumFromBtn(VoiceNum);
+					while(MusicNum >= EEPROM_Files[PWM_PCMPLAY_ANY]) MusicNum -= EEPROM_Files[PWM_PCMPLAY_ANY];
+					EEPROM_Play(PWM_PCMPLAY_ANY, MusicNum);
+				} else {
+					//どれでもなければキー押下を解除
+					PIN_Control_Key = 0;
+				}
+				break;
 			case _PLAYMODE_SERIAL:
 				//シリアル通信で順番を指定するモード====================
 				if (PIN_Control_Key == (1<<0)) {
@@ -116,17 +179,7 @@ int main(void)
 					PIN_Control_Key = 0;
 					if (VoiceNum > 0) {
 						VoiceNum --;
-						if (EEPROM_Params[0] == 0xFF) {
-							//直接指定の場合
-							MusicNum = VoiceNum;
-						} else {
-							//ボタン番号を指定するモードの場合
-							//各ボタンに指定された範囲を演奏する
-							MusicNum = BtnNum[VoiceNum];
-							if (MusicNum < EEPROM_Params[VoiceNum]) MusicNum = EEPROM_Params[VoiceNum];
-							BtnNum[VoiceNum] = MusicNum + 1;
-							if (BtnNum[VoiceNum] >= EEPROM_Params[VoiceNum+1]) BtnNum[VoiceNum] = EEPROM_Params[VoiceNum];
-						}
+						MusicNum = MusicNumFromBtn(VoiceNum);
 						while(MusicNum >= EEPROM_Files[PWM_PCMPLAY_ANY]) MusicNum -= EEPROM_Files[PWM_PCMPLAY_ANY];
 						EEPROM_Play(PWM_PCMPLAY_ANY, MusicNum);
 					}
