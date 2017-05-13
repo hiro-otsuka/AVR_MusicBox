@@ -18,6 +18,7 @@
  *  2017/03/11 GUIと連動するため EEPROM_write から分岐し、Fuseリセット・フラッシュ書き込み機能を追加して公開
  *  2017/04/01 AVR_MB の機能変更にあわせ、複数の EEPROM をまとめて扱うよう機能変更
  *  2017/04/22 ATTiny85 の EEPROM 書き込み機能を追加
+ *  2017/05/13 チップ間切り替え時間の変更
  *
  */
 
@@ -28,6 +29,7 @@
 #define I2C_ADDR_MAX  8
 #define I2C_BUFF_SIZE 32
 #define I2C_PAGE_SIZE 0x0F
+#define I2C_CHIP_SIZE 0xFFFF
 
 #define READ_COLS 32
 
@@ -413,7 +415,10 @@ void EEPROM_writeHEX()
             while(Serial.available()) Serial.read();
             return;
           }
-          delay(20);  //10ms設定では、チップ間の切り替え時に問題が発生した
+          delay(10);  //10ms設定では、チップ間の切り替え時に問題が発生した
+          if ((LastAddr & I2C_CHIP_SIZE) == 0) {
+            delay(100);  //チップ間の切り替え時はさらに時間を追加
+          }
           EEPROM_startaddr(LastAddr);
         } else {
           Serial.print(".");
@@ -766,7 +771,7 @@ void loop() {
   if (CmdEnable != 0) {
     Serial.println(INF_NULL);
     Serial.println("# ----------------------------------------");
-    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.3.1");
+    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.3.1a");
     Serial.println("#                           By Hiro OTSUKA");
     Serial.println("# ----------------------------------------");
     Serial.print("'++ R/W Addr=[");
@@ -784,7 +789,7 @@ void loop() {
     case 'V':
       Serial.println(inByte);
       CmdEnable = 1;
-      Serial.println(":AVR MB R/W Ver3.0");
+      Serial.println(":AVR MB R/W Ver3.1a");
       break;
     case 'h':
     case 'H':

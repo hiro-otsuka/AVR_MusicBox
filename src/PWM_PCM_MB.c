@@ -20,6 +20,7 @@
  *  2017/02/19 機能改善(Hiro OTSUKA) 周波数変更時のプチノイズを低減
  *  2017/03/24 機能変更(Hiro OTSUKA) 最大チャンネル数による音量調整を削除しMMLの音量で調整するよう変更
  *  2017/04/01 機能変更(Hiro OTSUKA) EEPROM Array の実装に対応
+ *  2017/05/13 機能変更(Hiro OTSUKA) LED制御をPIN_Controlモジュールに移管
  *
  */
 
@@ -33,7 +34,6 @@ void PwmSoundSin_Init();
 void PwmSoundSin_StartWave(uint8_t , uint16_t , uint16_t , uint16_t , uint8_t, uint8_t );
 void MusicScore_Init();
 void MusicScore_PlayMain();
-void MusicScore_SetLed(uint8_t, uint8_t );
 void MusicScore_SetMML(uint8_t, uint16_t );
 
 //********** 構造定義 **********//
@@ -437,61 +437,6 @@ void MusicScore_PlayMain()
 }
 
 //-----------------------------
-//楽譜からのLED制御
-//	引数：ON/OFF（0=OFF/1=ON）, ピン番号
-void MusicScore_SetLed(uint8_t isOn, uint8_t pinnum)
-{
-#if defined(PIN_LED0_DDR)
-	if (pinnum == 0) {
-		if (isOn) PIN_LED0_ON;
-		else PIN_LED0_OFF;
-	}
-#endif
-#if defined(PIN_LED1_DDR)
-	if (pinnum == 1) {
-		if (isOn) PIN_LED1_ON;
-		else PIN_LED1_OFF;
-	}
-#endif
-#if defined(PIN_LED2_DDR)
-	if (pinnum == 2) {
-		if (isOn) PIN_LED2_ON;
-		else PIN_LED2_OFF;
-	}
-#endif
-#if defined(PIN_LED3_DDR)
-	if (pinnum == 3) {
-		if (isOn) PIN_LED3_ON;
-		else PIN_LED3_OFF;
-	}
-#endif
-#if defined(PIN_LED4_DDR)
-	if (pinnum == 4) {
-		if (isOn) PIN_LED4_ON;
-		else PIN_LED4_OFF;
-	}
-#endif
-#if defined(PIN_LED5_DDR)
-	if (pinnum == 5) {
-		if (isOn) PIN_LED5_ON;
-		else PIN_LED5_OFF;
-	}
-#endif
-#if defined(PIN_LED6_DDR)
-	if (pinnum == 6) {
-		if (isOn) PIN_LED6_ON;
-		else PIN_LED6_OFF;
-	}
-#endif
-#if defined(PIN_LED7_DDR)
-	if (pinnum == 7) {
-		if (isOn) PIN_LED7_ON;
-		else PIN_LED7_OFF;
-	}
-#endif
-}
-
-//-----------------------------
 //MMLバッファへの楽譜情報読み込み
 //	引数：チャンネル番号, 読み込みサイズ
 void MusicScore_SetMML(uint8_t channel, uint16_t readNum)
@@ -547,10 +492,10 @@ ISR(TIMER0_COMPA_vect)
 							MusicScore_Channel[i].NoteOff = ScoreCmd &0xFF;
 							break;
 						case C_L_ON:
-							MusicScore_SetLed(1, ScoreCmd & 0xFF);
+							PIN_Control_SetLED(ScoreCmd & 0xFF, 1);
 							break;
 						case C_L_OFF:
-							MusicScore_SetLed(0, ScoreCmd & 0xFF);
+							PIN_Control_SetLED(ScoreCmd & 0xFF, 0);
 							break;
 						case C_TYPE:
 							MusicScore_Channel[i].Type = ScoreCmd &0xFF;

@@ -11,9 +11,9 @@
  *    ※定義すればほかのマイコンでも動作する可能性があるが、PLL等で16MHz以上の速度が必要
  *
  *   ATTiny85
- *        ※ BTN2/LED2/~PLAYを使う場合、Fuse設定で Reset を無効化する必要がある
+ *        ※ ~PLAYを使う場合、Fuse設定で Reset を無効化する必要がある
  *        ※ _PWM_DEBUG を有効化する場合はBTN1が使えない
- *    BTN2/LED2/~PLAY --*------*-- VCC
+ *              ~PLAY --*------*-- VCC
  *    BTN1/LED1/DEBUG --|      |-- I2C-SCL
  *              AUDIO --|      |-- BTN0/LED0
  *                GND --*------*-- I2C-SDA
@@ -41,6 +41,7 @@
  *  2017/04/07 構成変更(Hiro OTSUKA) ピン設定の互換性とエラーチェックを向上
  *  2017/04/09 構成変更(Hiro OTSUKA) 初期化処理を整理し、待ち時間設定を可変に
  *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否をパラメータで指定できるよう変更
+ *  2017/05/13 機能変更(Hiro OTSUKA) ピンの設定を実行時に指定できるよう変更
  *
  */
 
@@ -54,31 +55,12 @@
 #include "PWM_PCMPlay.h"
 
 //********** 定数定義 **********//
-//エラーチェック
-#if defined(_PIN0_LED) && defined(_PIN0_BTN)
- #error "PIN0 LED and BTN"
-#endif
-#if defined(_PIN1_LED) && defined(_PIN1_BTN)
- #error "PIN1 LED and BTN"
-#endif
-#if defined(_PIN2_LED) && defined(_PIN2_BTN)
- #error "PIN2 LED and BTN"
-#endif
-#if defined(_PIN3_LED) && defined(_PIN3_BTN)
- #error "PIN3 LED and BTN"
-#endif
-#if defined(_PIN4_LED) && defined(_PIN4_BTN)
- #error "PIN4 LED and BTN"
-#endif
-#if defined(_PIN5_LED) && defined(_PIN5_BTN)
- #error "PIN5 LED and BTN"
-#endif
-#if defined(_PIN6_LED) && defined(_PIN6_BTN)
- #error "PIN6 LED and BTN"
-#endif
-#if defined(_PIN7_LED) && defined(_PIN7_BTN)
- #error "PIN7 LED and BTN"
-#endif
+//共通定義
+// ピン設定用のビット番号
+#define PIN_SETBIT_BTN	0	// 1=BTN / 0=LED
+#define PIN_SETBIT_NOPU	1	// 1="NO"PullUp / 0=PullUP
+#define PIN_SETBIT_INT	2	// 1=Interrupt / 0="NO"Interrupt
+#define PIN_SETBIT_DEF	0b11111000	//デフォルトはすべて 1
 
 //マイコン別定義(対応マイコンを増やす場合は編集が必要)
 // ATTiny85系 -----------------
@@ -88,30 +70,7 @@
 	defined(__AVR_AT90Tiny26__) | \
 	defined(__AVR_ATtiny26__)
 
-//マイコン固有チェック
-#if defined(_PIN3_BTN) || defined(_PIN3_LED)
- #error "This chip has no PIN3"
-#endif
-#if defined(_PIN4_BTN) || defined(_PIN4_LED)
- #error "This chip has no PIN4"
-#endif
-#if defined(_PIN5_BTN) || defined(_PIN5_LED)
- #error "This chip has no PIN5"
-#endif
-#if defined(_PIN6_BTN) || defined(_PIN6_LED)
- #error "This chip has no PIN6"
-#endif
-#if defined(_PIN7_BTN) || defined(_PIN7_LED)
- #error "This chip has no PIN7"
-#endif
-
-#if defined(_PWM_DEBUG) && ( defined(_PIN1_BTN) || defined(_PIN1_LED) )
- #error "PIN1 and PWM_DEBUG"
-#endif
-
-#if defined(_PLAYING_ENABLE) && ( defined(_PIN2_BTN) || defined(_PIN2_LED) )
- #error "PIN2 and PLAYING_ENABLE"
-#endif
+#define _PIN_NUM_MAX	2
 
 //for PCINT0
 #define PIN_CHANGE_INT_ENBL	GIMSK |= (1 << PCIE)
@@ -136,43 +95,19 @@
 #define PWM_TIM1B_ON	GTCCR = (1 << PWM1B) | (1 << COM1B1) | (0 << COM1B0);
 
 //for Physical User Interface
-#if defined(_PIN0_BTN)
- #define PIN_BTN0_DDR		DDRB &= ~(1 << PINB1)
- #define PIN_BTN0_PORT_PU	PORTB |= (1 << PINB1)	//Pull Up
- #define PIN_BTN0_PORT_NO	PORTB &= ~(1 << PINB1)	//not Pull Up
- #define PIN_BTN0_PIN		(PINB & (1 << PINB1))
- #define PIN_BTN0_INT		PCMSK |= (1 << PCINT1)
-#endif
-#if defined(_PIN1_BTN)
- #define PIN_BTN1_DDR		DDRB &= ~(1 << PINB3)
- #define PIN_BTN1_PORT_PU	PORTB |= (1 << PINB3)	//Pull Up
- #define PIN_BTN1_PORT_NO	PORTB &= ~(1 << PINB3)	//not Pull Up
- #define PIN_BTN1_PIN		(PINB & (1 << PINB3))
- #define PIN_BTN1_INT		PCMSK |= (1 << PCINT3)
-#endif
-#if defined(_PIN2_BTN)
- #define PIN_BTN2_DDR		DDRB &= ~(1 << PINB5)
- #define PIN_BTN2_PORT_PU	PORTB |= (1 << PINB5)	//Pull Up
- #define PIN_BTN2_PORT_NO	PORTB &= ~(1 << PINB5)	//not Pull Up
- #define PIN_BTN2_PIN		(PINB & (1 << PINB5))
- #define PIN_BTN2_INT		PCMSK |= (1 << PCINT5)
-#endif
+#define PIN_PIN0_BTN		DDRB &= ~(1 << PINB1)
+#define PIN_PIN0_LED		DDRB |= (1<<PINB1)
+#define PIN_PIN0_ON			PORTB |= (1 << PINB1)	//Pull Up
+#define PIN_PIN0_OFF		PORTB &= ~(1 << PINB1)	//not Pull Up
+#define PIN_PIN0_DATA		(PINB & (1 << PINB1))
+#define PIN_PIN0_INT		PCMSK |= (1 << PCINT1)
 
-#if defined(_PIN0_LED)
- #define PIN_LED0_DDR		DDRB |= (1<<PINB1)
- #define PIN_LED0_ON		PORTB |= (1 << PINB1)
- #define PIN_LED0_OFF		PORTB &= ~(1 << PINB1)
-#endif
-#if defined(_PIN1_LED)
- #define PIN_LED1_DDR		DDRB |= (1<<PINB3)
- #define PIN_LED1_ON		PORTB |= (1 << PINB3)
- #define PIN_LED1_OFF		PORTB &= ~(1 << PINB3)
-#endif
-#if defined(_PIN2_LED)
-#define PIN_LED1_DDR		DDRB |= (1<<PINB3)
-#define PIN_LED1_ON			PORTB |= (1 << PINB3)
-#define PIN_LED1_OFF		PORTB &= ~(1 << PINB3)
-#endif
+#define PIN_PIN1_BTN		DDRB &= ~(1 << PINB3)
+#define PIN_PIN1_LED		DDRB |= (1<<PINB3)
+#define PIN_PIN1_ON			PORTB |= (1 << PINB3)	//Pull Up
+#define PIN_PIN1_OFF		PORTB &= ~(1 << PINB3)	//not Pull Up
+#define PIN_PIN1_DATA		(PINB & (1 << PINB3))
+#define PIN_PIN1_INT		PCMSK |= (1 << PCINT3)
 
 #endif
 
@@ -183,6 +118,8 @@
 	defined( __AVR_ATtiny261A__ ) | \
 	defined( __AVR_ATtiny461A__ ) | \
 	defined( __AVR_ATtiny861A__ )
+
+#define _PIN_NUM_MAX	8
 
 //for PCINT0
 #define PIN_CHANGE_INT_ENBL	GIMSK |= (1 << PCIE1)	//PCINT0-7 and PCINT12-15
@@ -207,113 +144,76 @@
 #define PWM_TIM1B_ON	TCCR1A = (1 << PWM1B) | (1 << COM1B1) | (0 << COM1B0);
 
 //for Physical User Interface
-#if defined(_PIN0_BTN)
- #define PIN_BTN0_DDR		DDRA &= ~(1 << PINA0)
- #define PIN_BTN0_PORT_PU	PORTA |= (1 << PINA0)	//Pull Up
- #define PIN_BTN0_PORT_NO	PORTA &= ~(1 << PINA0)	//not Pull Up
- #define PIN_BTN0_PIN		(PINA & (1 << PINA0))
- #define PIN_BTN0_INT		PCMSK0 |= (1 << PCINT0)
-#endif
-#if defined(_PIN1_BTN)
- #define PIN_BTN1_DDR		DDRA &= ~(1 << PINA1)
- #define PIN_BTN1_PORT_PU	PORTA |= (1 << PINA1)	//Pull Up
- #define PIN_BTN1_PORT_NO	PORTA &= ~(1 << PINA1)	//not Pull Up
- #define PIN_BTN1_PIN		(PINA & (1 << PINA1))
- #define PIN_BTN1_INT		PCMSK0 |= (1 << PCINT1)
-#endif
-#if defined(_PIN2_BTN)
- #define PIN_BTN2_DDR		DDRA &= ~(1 << PINA2)
- #define PIN_BTN2_PORT_PU	PORTA |= (1 << PINA2)	//Pull Up
- #define PIN_BTN2_PORT_NO	PORTA &= ~(1 << PINA2)	//not Pull Up
- #define PIN_BTN2_PIN		(PINA & (1 << PINA2))
- #define PIN_BTN2_INT		PCMSK0 |= (1 << PCINT2)
-#endif
-#if defined(_PIN3_BTN)
- #define PIN_BTN3_DDR		DDRA &= ~(1 << PINA3)
- #define PIN_BTN3_PORT_PU	PORTA |= (1 << PINA3)	//Pull Up
- #define PIN_BTN3_PORT_NO	PORTA &= ~(1 << PINA3)	//not Pull Up
- #define PIN_BTN3_PIN		(PINA & (1 << PINA3))
- #define PIN_BTN3_INT		PCMSK0 |= (1 << PCINT3)
-#endif
-#if defined(_PIN4_BTN)
- #define PIN_BTN4_DDR		DDRA &= ~(1 << PINA4)
- #define PIN_BTN4_PORT_PU	PORTA |= (1 << PINA4)	//Pull Up
- #define PIN_BTN4_PORT_NO	PORTA &= ~(1 << PINA4)	//not Pull Up
- #define PIN_BTN4_PIN		(PINA & (1 << PINA4))
- #define PIN_BTN4_INT		PCMSK0 |= (1 << PCINT4)
-#endif
-#if defined(_PIN5_BTN)
- #define PIN_BTN5_DDR		DDRA &= ~(1 << PINA5)
- #define PIN_BTN5_PORT_PU		PORTA |= (1 << PINA5)	//Pull Up
- #define PIN_BTN5_PORT_NO		PORTA &= ~(1 << PINA5)	//not Pull Up
- #define PIN_BTN5_PIN		(PINA & (1 << PINA5))
- #define PIN_BTN5_INT		PCMSK0 |= (1 << PCINT5)
-#endif
-#if defined(_PIN6_BTN)
- #define PIN_BTN6_DDR		DDRA &= ~(1 << PINA6)
- #define PIN_BTN6_PORT_PU	PORTA |= (1 << PINA6)	//Pull Up
- #define PIN_BTN6_PORT_NO	PORTA &= ~(1 << PINA6)	//not Pull Up
- #define PIN_BTN6_PIN		(PINA & (1 << PINA6))
- #define PIN_BTN6_INT		PCMSK0 |= (1 << PCINT6)
-#endif
-#if defined(_PIN7_BTN)
- #define PIN_BTN7_DDR		DDRA &= ~(1 << PINA7)
- #define PIN_BTN7_PORT_PU	PORTA |= (1 << PINA7)	//Pull Up
- #define PIN_BTN7_PORT_NO	PORTA &= ~(1 << PINA7)	//not Pull Up
- #define PIN_BTN7_PIN		(PINA & (1 << PINA7))
- #define PIN_BTN7_INT		PCMSK0 |= (1 << PCINT7)
-#endif
+#define PIN_PIN0_BTN		DDRA &= ~(1 << PINA0)
+#define PIN_PIN0_LED		DDRA |= (1<<PINA0)
+#define PIN_PIN0_ON			PORTA |= (1 << PINA0)	//Pull Up
+#define PIN_PIN0_OFF		PORTA &= ~(1 << PINA0)	//not Pull Up
+#define PIN_PIN0_DATA		(PINA & (1 << PINA0))
+#define PIN_PIN0_INT		PCMSK0 |= (1 << PCINT0)
 
-#if defined(_PIN0_LED)
- #define PIN_LED0_DDR		DDRA |= (1<<PINA0)
- #define PIN_LED0_ON		PORTA |= (1 << PINA0)
- #define PIN_LED0_OFF		PORTA &= ~(1 << PINA0)
-#endif
-#if defined(_PIN1_LED)
- #define PIN_LED1_DDR		DDRA |= (1<<PINA1)
- #define PIN_LED1_ON		PORTA |= (1 << PINA1)
- #define PIN_LED1_OFF		PORTA &= ~(1 << PINA1)
-#endif
-#if defined(_PIN2_LED)
- #define PIN_LED2_DDR		DDRA |= (1<<PINA2)
- #define PIN_LED2_ON		PORTA |= (1 << PINA2)
- #define PIN_LED2_OFF		PORTA &= ~(1 << PINA2)
-#endif
-#if defined(_PIN3_LED)
- #define PIN_LED3_DDR		DDRA |= (1<<PINA3)
- #define PIN_LED3_ON		PORTA |= (1 << PINA3)
- #define PIN_LED3_OFF		PORTA &= ~(1 << PINA3)
-#endif
-#if defined(_PIN4_LED)
- #define PIN_LED4_DDR		DDRA |= (1<<PINA4)
- #define PIN_LED4_ON		PORTA |= (1 << PINA4)
- #define PIN_LED4_OFF		PORTA &= ~(1 << PINA4)
-#endif
-#if defined(_PIN5_LED)
- #define PIN_LED5_DDR		DDRA |= (1<<PINA5)
- #define PIN_LED5_ON		PORTA |= (1 << PINA5)
- #define PIN_LED5_OFF		PORTA &= ~(1 << PINA5)
-#endif
-#if defined(_PIN6_LED)
- #define PIN_LED6_DDR		DDRA |= (1<<PINA6)
- #define PIN_LED6_ON		PORTA |= (1 << PINA6)
- #define PIN_LED6_OFF		PORTA &= ~(1 << PINA6)
-#endif
-#if defined(_PIN7_LED)
- #define PIN_LED7_DDR		DDRA |= (1<<PINA7)
- #define PIN_LED7_ON		PORTA |= (1 << PINA7)
- #define PIN_LED7_OFF		PORTA &= ~(1 << PINA7)
-#endif
+#define PIN_PIN1_BTN		DDRA &= ~(1 << PINA1)
+#define PIN_PIN1_LED		DDRA |= (1<<PINA1)
+#define PIN_PIN1_ON			PORTA |= (1 << PINA1)	//Pull Up
+#define PIN_PIN1_OFF		PORTA &= ~(1 << PINA1)	//not Pull Up
+#define PIN_PIN1_DATA		(PINA & (1 << PINA1))
+#define PIN_PIN1_INT		PCMSK0 |= (1 << PCINT1)
+
+#define PIN_PIN2_BTN		DDRA &= ~(1 << PINA2)
+#define PIN_PIN2_LED		DDRA |= (1<<PINA2)
+#define PIN_PIN2_ON			PORTA |= (1 << PINA2)	//Pull Up
+#define PIN_PIN2_OFF		PORTA &= ~(1 << PINA2)	//not Pull Up
+#define PIN_PIN2_DATA		(PINA & (1 << PINA2))
+#define PIN_PIN2_INT		PCMSK0 |= (1 << PCINT2)
+
+#define PIN_PIN3_BTN		DDRA &= ~(1 << PINA3)
+#define PIN_PIN3_LED		DDRA |= (1<<PINA3)
+#define PIN_PIN3_ON			PORTA |= (1 << PINA3)	//Pull Up
+#define PIN_PIN3_OFF		PORTA &= ~(1 << PINA3)	//not Pull Up
+#define PIN_PIN3_DATA		(PINA & (1 << PINA3))
+#define PIN_PIN3_INT		PCMSK0 |= (1 << PCINT3)
+
+#define PIN_PIN4_BTN		DDRA &= ~(1 << PINA4)
+#define PIN_PIN4_LED		DDRA |= (1<<PINA4)
+#define PIN_PIN4_ON			PORTA |= (1 << PINA4)	//Pull Up
+#define PIN_PIN4_OFF		PORTA &= ~(1 << PINA4)	//not Pull Up
+#define PIN_PIN4_DATA		(PINA & (1 << PINA4))
+#define PIN_PIN4_INT		PCMSK0 |= (1 << PCINT4)
+
+#define PIN_PIN5_BTN		DDRA &= ~(1 << PINA5)
+#define PIN_PIN5_LED		DDRA |= (1<<PINA5)
+#define PIN_PIN5_ON			PORTA |= (1 << PINA5)	//Pull Up
+#define PIN_PIN5_OFF		PORTA &= ~(1 << PINA5)	//not Pull Up
+#define PIN_PIN5_DATA		(PINA & (1 << PINA5))
+#define PIN_PIN5_INT		PCMSK0 |= (1 << PCINT5)
+
+#define PIN_PIN6_BTN		DDRA &= ~(1 << PINA6)
+#define PIN_PIN6_LED		DDRA |= (1<<PINA6)
+#define PIN_PIN6_ON			PORTA |= (1 << PINA6)	//Pull Up
+#define PIN_PIN6_OFF		PORTA &= ~(1 << PINA6)	//not Pull Up
+#define PIN_PIN6_DATA		(PINA & (1 << PINA6))
+#define PIN_PIN6_INT		PCMSK0 |= (1 << PCINT6)
+
+#define PIN_PIN7_BTN		DDRA &= ~(1 << PINA7)
+#define PIN_PIN7_LED		DDRA |= (1<<PINA7)
+#define PIN_PIN7_ON			PORTA |= (1 << PINA7)	//Pull Up
+#define PIN_PIN7_OFF		PORTA &= ~(1 << PINA7)	//not Pull Up
+#define PIN_PIN7_DATA		(PINA & (1 << PINA7))
+#define PIN_PIN7_INT		PCMSK0 |= (1 << PCINT7)
 
 #endif
 
 //********** 変数定義 **********//
 //BTNの押下状態を参照可能（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
 extern volatile uint8_t PIN_Control_Key;
+extern volatile uint8_t PIN_Control_SetBit[];
 
 //********** 関数定義 **********//
 //ピンアサインと割り込み処理の初期化
-void PIN_Control_Init(uint8_t);
+void PIN_Control_Init();
+
+//各ピンのI/O設定
+//	引数：ピン番号、設定（ビット設定は PIN_SETBIT_* 定数を参照）
+void PIN_Control_SetIO(uint8_t, uint8_t);
 
 //ボタン待ち時間設定
 //	引数：ボタン安定までの待ち時間（ms）
@@ -334,5 +234,9 @@ volatile uint8_t PIN_Control_GetKey();
 //外部のオペアンプをON/OFF制御(ピンが有効な場合)
 //	引数：0=OFF/1=ON
 void PIN_Control_Playing(uint8_t);
+
+//LEDのON/OFF制御(ピンが出力設定の場合)
+//	引数：PIN番号、0=OFF/1=ON
+void PIN_Control_SetLED(uint8_t, uint8_t);
 
 #endif /* PIN_Control_H_ */

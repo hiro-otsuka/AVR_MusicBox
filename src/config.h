@@ -16,17 +16,18 @@
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *  2017/04/09 機能追加(Hiro OTSUKA) シリアル通信モード等のための設定項目を追加
  *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否をパラメータで指定できるよう変更
+ *  2017/05/13 機能変更(Hiro OTSUKA) ピンの設定を実行時に指定できるよう変更
  *
  */
 
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-//#define F_CPU 16000000UL	//CPUスピードを定義 → プロジェクトで定義した方がよい
+//#define F_CPU 16000000UL	//CPUスピードはプロジェクトで定義すること
 
 //********** 機能定義 **********//
 //演奏中にPLAYINGピンがLowになる機能を有効化（オーディオアンプのCEピンへの接続を想定）
-//	※ATTiny85の場合：ピン数が足りないためリセット無効化が必要＆BTN2/LED2と競合
+//	※ATTiny85の場合：ピン数が足りないためリセット無効化が必要
 #define _PLAYING_ENABLE
 
 //PCM情報が間に合わない場合に PWM_DEBUG_OUT に 1 を出力する機能を有効化
@@ -49,34 +50,6 @@
 #define PIN_SERIAL_BTN			12		//シリアル通信時に指定されうるボタンの数
 
 //********** ピン定義 **********//
-// BTN/LED の選択
-// _PINx_LED を定義= PINx を出力(LED)として使う
-// _PINx_BTN を定義= PINx を入力(BTN)として使う
-// _PINx_BTN_INT を定義= BTNx が押されたときに割り込み処理(sleep からの復帰含む)を行う
-#define _PIN0_BTN
-#define _PIN0_BTN_INT
-#define _PIN1_BTN
-#define _PIN1_BTN_INT
-//#define _PIN2_BTN
-//#define _PIN2_BTN_INT
-//#define _PIN3_BTN
-//#define _PIN3_BTN_INT
-//#define _PIN4_BTN
-//#define _PIN4_BTN_INT
-//#define _PIN5_BTN
-//#define _PIN5_BTN_INT
-//#define _PIN6_BTN
-//#define _PIN6_BTN_INT
-//#define _PIN7_BTN
-//#define _PIN7_BTN_INT
-
-//#define _PIN0_LED
-//#define _PIN1_LED
-//#define _PIN2_LED
-//#define _PIN3_LED
-//#define _PIN4_LED
-//#define _PIN5_LED
-//#define _PIN6_LED
-//#define _PIN7_LED
+// EEPROMで指定するよう変更
 
 #endif /* CONFIG_H_ */

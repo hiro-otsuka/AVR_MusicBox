@@ -22,6 +22,7 @@
  *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否と再生モードを内蔵EEPROMで指定できるよう変更
  *  2017/04/29 構成変更(Hiro OTSUKA) シリアル通信の2モードをパラメータでの指定に統合
  *  2017/05/07 機能追加(Hiro OTSUKA) ボタン直接指定とパラレル通信モードを追加し、2モードのパラメータ指定方法を変更
+ *  2017/05/13 機能変更(Hiro OTSUKA) ピンの設定をEEPROMで指定できるよう変更
  *
  */
 
@@ -34,7 +35,7 @@
 
 //EEPROM上のパラメータアドレスを定義
 #define PARAM_PLAYMODE	0x00
-#define PARAM_ISPULLUP	0x01
+#define PARAM_PINSETBIT	0x01	//開始位置
 
 //再生モードを定義（EEPROM内のパラメータファイル 0 バイト目で指定）
 #define _PLAYMODE_SPLIT			0x00	//分離再生モード(BTN0 = PCM、BTN1 = MML) ※パラメータが無い場合のデフォルト
@@ -72,14 +73,22 @@ int main(void)
 	uint8_t MusicNum = 0;
 	uint8_t VoiceNum = 0;
 
+	//起動時Wait
+//	_delay_ms(100);
+	
 	//内蔵EEPROMからパラメータを取得する
 	eeprom_busy_wait();
 	uint8_t PlayMode = eeprom_read_byte((uint8_t*)PARAM_PLAYMODE);
-	eeprom_busy_wait();
-	uint8_t IsNotPU = eeprom_read_byte((uint8_t*)PARAM_ISPULLUP);
 	
 	//マイコンを初期化する
-	PIN_Control_Init(IsNotPU);
+	PIN_Control_Init();
+	
+	//EEPROM の値に従ってピン設定を行う
+	for (uint8_t i = 0; i < _PIN_NUM_MAX; i ++) {
+		eeprom_busy_wait();
+		uint8_t setBit = eeprom_read_byte((uint8_t*)(PARAM_PINSETBIT + i));
+		PIN_Control_SetIO(i, setBit);
+	}
 	
 	//I2C を初期化する
 	EEPROM_Array_Init(16000, 1000);
