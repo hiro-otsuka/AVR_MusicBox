@@ -13,7 +13,7 @@
  *   ATTiny85
  *        ※ ~PLAYを使う場合、Fuse設定で Reset を無効化する必要がある
  *        ※ _PWM_DEBUG を有効化する場合はBTN1が使えない
- *              ~PLAY --*------*-- VCC
+ *        ~PLAY/RESET --*------*-- VCC
  *    BTN1/LED1/DEBUG --|      |-- I2C-SCL
  *              AUDIO --|      |-- BTN0/LED0
  *                GND --*------*-- I2C-SDA
@@ -108,6 +108,17 @@
 #define PIN_PIN1_OFF		PORTB &= ~(1 << PINB3)	//not Pull Up
 #define PIN_PIN1_DATA		(PINB & (1 << PINB3))
 #define PIN_PIN1_INT		PCMSK |= (1 << PCINT3)
+
+//デバッグピン使用の場合はPIN1が無効化される
+#ifdef _PWM_DEBUG
+#warning "PIN1 disabled!"
+#undef PIN_PIN1_BTN
+#undef PIN_PIN1_LED
+#undef PIN_PIN1_ON
+#undef PIN_PIN1_OFF
+#undef PIN_PIN1_DATA
+#undef PIN_PIN1_INT
+#endif
 
 #endif
 

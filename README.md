@@ -26,8 +26,10 @@ PCM音源については、波形編集用のソフトウェア等により、�
 # 成果物
 本プロジェクトに含まれる成果物は以下の通り。
 * [circuits/](/circuits/) ：参考回路図
-* [sample_elf/](/sample_elf/) ：AVRマイコン用コンパイル済みファームウェア
+* [elf/](/elf/) ：AVRマイコン用コンパイル済みファームウェア
 * [sample_mml/](/sample_mml/) ：サンプルオルゴール楽譜ファイル
+* [sample_mode/](/sample_mode/) ：AVR内蔵EEPROM用のサンプル動作モード設定ファイル
+* [sample_par/](/sample_par/) ：I2C接続EEPROM用のサンプルパラメータファイル
 * [sample_pcm/](/sample_pcm/) ：サンプルPCM音源ファイル
 * [src/](/src/) ：AVR_MusicBox のソースファイル
 * [src_mml/](/src_mml/) ：AVR_MusicBox にオルゴール楽譜を内蔵する際のソースファイル
@@ -46,7 +48,7 @@ PCM音源については、波形編集用のソフトウェア等により、�
  ※[AVR_MB_Writer](https://github.com/hiro-otsuka/AVR_MB_Writer) を使用する場合は不要
 * AVRマイコン用コンパイラ  
 例）Atmel Studio 7(http://www.atmel.com/ja/jp/tools/atmelstudio.aspx)  
- ※カスタマイズせず、[sample_elf/](/sample_elf/) のファームウェアをそのまま使用する場合は不要
+ ※カスタマイズせず、[elf/](/elf/) のファームウェアをそのまま使用する場合は不要
 * MML・PAR変換ツールコンパイル用 C++ 開発環境  
 例）Eclipse + CDT(http://mergedoc.osdn.jp/)  
  ※カスタマイズせず、[tools/](/tools/) の実行ファイルをそのまま使用する場合は不要
@@ -90,7 +92,7 @@ AVR_MusicBox のジャンパ設定でAVRマイコンと EEPROM 等との間を�
 AVR_MB_Writerのマニュアルを参照し、以下の操作を行う。
  * Fuse の初期設定(Fuse Initialize)
  * RSTピンの無効化(RST Disable)
- * [sample_elf/](/sample_elf/)のファームウェアを書き込む
+ * [elf/](/elf/)のファームウェアを書き込む
  * [sample_mml/](/sample_mml/)および[sample_pcm/](/sample_pcm/)データを書き込む
 
 ## 実行
@@ -103,6 +105,7 @@ AVR_MusicBox のジャンパ設定でAVRマイコンと EEPROM 等との間を�
 ## 動作のカスタマイズ
 AVR内蔵EEPROMで、動作モード（ボタン入力への応答方式等）やピンのI/O設定が変更可能。
 EEPROM の1バイト目が動作モード、2バイト目以降がピンのI/O設定となる。  
+各動作モードのサンプルバイナリファイルを[sample_mode/](/sample_mode/)に格納しているのでご参考に。  
 ### 動作モードの指定（1バイト目）
 1バイト目で、動作モードの指定を行う。  
 * 0x00 ... 分離再生モード(ボタン0 = PCM音源、ボタン1 = オルゴール楽譜)
@@ -128,6 +131,7 @@ EEPROM の1バイト目が動作モード、2バイト目以降がピンのI/O�
 パラメータファイルは、テキストで記述したものを、PAR変換ツールでバイナリ化することで作成可能だが、最初からバイナリエディタで作成することも可能。
 ヘッダ等含めた最大ファイルサイズは32バイト、ヘッダ等を除く実データ領域の最大サイズは24バイトとなる。
 I2C接続EEPROM にパラメータファイルが格納されていない場合は 24バイト分の 0x00 が指定されたものとして動作する。  
+各動作モードのサンプルパラメータファイルを[sample_par/](/sample_par/)に格納しているのでご参考に。  
 ### 分離再生モードのパラメータファイル
 1バイト目：ボタン0・ボタン1同時押し時の再生対象番号を指定する。
 
