@@ -19,6 +19,7 @@
  *  2017/02/19 拍、テンポ、キーを途中で変更する機能を追加、複付点音符に対応
  *  2017/03/11 GUIからの呼び出しに対応するため出力方法を変更
  *  2017/04/16 行数カウント時のバグを修正
+ *  2017/05/19 LED_OFFコマンドの'F'が音符と重複していたので'X'に変更
  *
  */
 
@@ -77,7 +78,7 @@ namespace commonfunc {
 	// タイトル
 	void	title()
 	{
-		cerr << "MML2BIN.EXE ATTiny85 MusicBox用MML アセンブルプログラム Ver 1.01 (C)Hiro OTSUKA" << endl;
+		cerr << "MML2BIN.EXE ATTiny85 MusicBox用MML アセンブルプログラム Ver 1.02 (C)Hiro OTSUKA" << endl;
 	}
 	// 使い方を表示
 	void	usage()
@@ -776,12 +777,12 @@ void	clsPART :: asmblpt(char ch)
 	// LED点灯
 	else if (ch == 'P') {
 		writenum();
-		fileio->writemuw(CMD_LED_ON);
+		fileio->writemu(CMD_LED_ON);
 	}
 	// LED消灯
-	else if (ch == 'F') {
+	else if (ch == 'X') {
 		writenum();
-		fileio->writemuw(CMD_LED_OFF);
+		fileio->writemu(CMD_LED_OFF);
 	}
 	// オクターブの確認
 	else if (ch == '%') {

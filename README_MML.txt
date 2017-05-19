@@ -141,7 +141,7 @@
   ⇒nn = ONにするLED番号
     他ピンマイコンで、音楽と同期してLEDをON/OFFする場合に使用する。
 
- Fnn ... LEDのOFF
+ Xnn ... LEDのOFF
   ⇒nn = OFFにするLED番号
     他ピンマイコンで、音楽と同期してLEDをON/OFFする場合に使用する。
 
