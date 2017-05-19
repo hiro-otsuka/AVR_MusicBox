@@ -17,6 +17,7 @@
  *  2017/04/09 機能追加(Hiro OTSUKA) シリアル通信モード等のための設定項目を追加
  *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否をパラメータで指定できるよう変更
  *  2017/05/13 機能変更(Hiro OTSUKA) ピンの設定を実行時に指定できるよう変更
+ *  2017/05/19 構成変更(Hiro OTSUKA) コードサイズ削減を実施
  *
  */
 
@@ -39,7 +40,7 @@
 //#define _HIGH_RESO
 
 //********** 性能定義 **********//
-#define MUSIC_SCORES			4		//登録する楽譜の最大数（8Kのメモリでは4曲程度が限界⇒EEPROM読込再生に対応したため影響は小）
+//#define MUSIC_SCORES			4		//メモリ上に登録する楽譜の最大数（EEPROM読込再生のみ使用する場合は定義不要）
 #define	MUSIC_SCORE_CHANNELS	3		//チャネル数（CPU性能に依存. ATTiny85 16MHz で MUSIC_PLAY_FREQ=16000の場合、3が最大）
 #define MUSIC_PLAY_FREQ			16000	//SINE波再生の解像度（8000にすると高音が歪む）
 #define PWM_SOUND_FREQ			32000	//PCM再生解像度（8000,16000,32000が選択可能）

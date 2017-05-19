@@ -21,6 +21,7 @@
  *  2017/03/24 機能変更(Hiro OTSUKA) 最大チャンネル数による音量調整を削除しMMLの音量で調整するよう変更
  *  2017/04/01 機能変更(Hiro OTSUKA) EEPROM Array の実装に対応
  *  2017/05/13 機能変更(Hiro OTSUKA) LED制御をPIN_Controlモジュールに移管
+ *  2017/05/19 構成変更(Hiro OTSUKA) コードサイズ削減を実施
  *
  */
 
@@ -231,7 +232,9 @@ const static uint16_t MusicNote_Buff_IndexStep[MUSIC_NOTE_MAX] PROGMEM = {
 //********** 変数定義 **********//
 static strPwmSoundChannel PwmSoundSin_Channel[MUSIC_SCORE_CHANNELS];
 static strMusicScoreChannel MusicScore_Channel[MUSIC_SCORE_CHANNELS];
+#ifdef MUSIC_SCORES
 static strMusicScore MusicScore[MUSIC_SCORES];
+#endif
 
 //********** 外部関数 **********//
 //=============================
@@ -241,9 +244,11 @@ void PWM_PCM_MB_Init()
 	PwmSound_Init();
 	PwmSoundSin_Init();
 	
+#ifdef MUSIC_SCORES
 	for (int MusicNum = 0; MusicNum < MUSIC_SCORES; MusicNum++) {
 		MusicScore[MusicNum].Init = 0;
 	}
+#endif
 
 	TCCR0A = TIM0_TCCR0A;
 	TCCR0B = (1 << CS02) | (0 << CS01) | (1 << CS00);
@@ -254,10 +259,12 @@ void PWM_PCM_MB_Init()
 //=============================
 //楽譜情報設定
 //	引数：楽譜番号, 初期化用コールバック関数
+#ifdef MUSIC_SCORES
 void PWM_PCM_MB_MEM_SetScore(uint8_t MusicNum, void (*func)())
 {
 	MusicScore[MusicNum].Init = func;
 }
+#endif
 
 //=============================
 //チャンネル情報設定
@@ -271,6 +278,7 @@ void PWM_PCM_MB_MEM_SetScoreChannel(uint8_t channel, const uint16_t* ScoreBuff, 
 //=============================
 //オルゴールモジュールの再生開始（C_ENDまで再生すると終了） メモリ版
 //	引数：楽譜番号
+#ifdef MUSIC_SCORES
 void PWM_PCM_MB_MEM_Play(uint8_t MusicNum)
 {
 	// メモリ上のスコアを初期化
@@ -282,7 +290,7 @@ void PWM_PCM_MB_MEM_Play(uint8_t MusicNum)
 	// メインの再生モジュールをコール
 	MusicScore_PlayMain();
 }
-
+#endif
 //=============================
 //オルゴールモジュールの再生開始（C_ENDまで再生すると終了） EEOROM版
 //	引数：開始アドレス
@@ -430,7 +438,9 @@ void MusicScore_PlayMain()
 #endif
 		}
 	}
-
+	//全LEDの消去
+	PIN_Control_ClearLED();
+	
 	//楽譜の再生終了
 	TIMSK &= ~(1 << OCIE0A);
 	PwmSound_Stop();

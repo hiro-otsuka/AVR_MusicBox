@@ -23,6 +23,7 @@
  *  2017/04/29 構成変更(Hiro OTSUKA) シリアル通信の2モードをパラメータでの指定に統合
  *  2017/05/07 機能追加(Hiro OTSUKA) ボタン直接指定とパラレル通信モードを追加し、2モードのパラメータ指定方法を変更
  *  2017/05/13 機能変更(Hiro OTSUKA) ピンの設定をEEPROMで指定できるよう変更
+ *  2017/05/19 構成変更(Hiro OTSUKA) コードサイズ削減を実施
  *
  */
 
@@ -39,8 +40,8 @@
 
 //再生モードを定義（EEPROM内のパラメータファイル 0 バイト目で指定）
 #define _PLAYMODE_SPLIT			0x00	//分離再生モード(BTN0 = PCM、BTN1 = MML) ※パラメータが無い場合のデフォルト
-#define _PLAYMODE_ALL			0x01	//全再生モード(BTN0 = 戻る、BTN1 = 進む)
-#define _PLAYMODE_SERIAL		0x02	//シリアル指定モード(BTN0 押下中 BTN1 押下回数で指定) ※小ピンマイコン用・EEPROMで曲数指定
+#define _PLAYMODE_ALL			0x01	//全再生モード(BTN0 = 戻る、BTN1 = 進む) ※2ピンマイコンのみ
+#define _PLAYMODE_SERIAL		0x02	//シリアル指定モード(BTN0 押下中 BTN1 押下回数で指定) ※2ピンマイコンのみ・EEPROMで曲数指定
 #define _PLAYMODE_NUMBER		0x03	//ボタン番号指定モード(BTN0～BTNx で直接指定) ※多ピンマイコン用・EEPROMで曲数指定
 #define _PLAYMODE_PARALLEL		0x04	//パラレル指定モード(BTN0～BTNx で２進数指定) ※多ピンマイコン用・EEPROMで曲数指定
 
@@ -99,7 +100,7 @@ int main(void)
 	//EEPROM のファイル数を得る
 	EEPROM_Init();
 	
-	//MMLを内蔵する場合は下記の通り実行する（プログラムメモリを使用するので要注意）
+	//MMLを内蔵する場合は、config.h の MUSIC_SCORES と下記を有効化する（プログラムメモリを使用するので要注意）
 	//MMLの宣言----
 	//#include "MML_Test.h"
 	//MMLの登録----
@@ -130,7 +131,7 @@ int main(void)
 				//BTN0～BTNx で２進指定するモード====================
 				if (PIN_Control_Key != 0) {
 					//完全にキー押下が解除されるまで待つ
-					PIN_Control_WaitKeyOff(0);
+					PIN_Control_WaitKey(PIN_WAIT_OFF, 0);
 					//下位ボタンから押されていることを確認する
 					VoiceNum = PIN_Control_Key - 1;	//ボタンの状態がそのまま２進指定になる（ただし－１）
 					PIN_Control_Key = 0;
@@ -146,7 +147,7 @@ int main(void)
 				//BTN0～BTNx を直接指定するモード====================
 				if (PIN_Control_Key != 0) {
 					//完全にキー押下が解除されるまで待つ
-					PIN_Control_WaitKeyOff(0);
+					PIN_Control_WaitKey(PIN_WAIT_OFF, 0);
 					//下位ボタンから押されていることを確認する
 					VoiceNum = 0;
 					for (uint8_t i = 0; i < PIN_SERIAL_BTN; i++) {
@@ -163,27 +164,28 @@ int main(void)
 					PIN_Control_Key = 0;
 				}
 				break;
+#if _PIN_NUM_MAX == 2	//2ピンマイコン以外では無駄なので無効にする
 			case _PLAYMODE_SERIAL:
 				//シリアル通信で順番を指定するモード====================
 				if (PIN_Control_Key == (1<<0)) {
 					VoiceNum = 0;
 					//完全に押されるまで待つ
-					PIN_Control_WaitKeyOn(~(1 << 0));
+					PIN_Control_WaitKey(PIN_WAIT_ON, ~(1 << 0));
 					//BTN0 が離されるまで、BTN1 が押された回数を計測する
 					while (PIN_Control_GetKey() & (1 << 0)) {
 						//BTN1 が押されたら、離されるまで待つ
 						if(PIN_Control_GetKey() & (1 << 1)) {
 							//完全に押されるまで待つ
-							PIN_Control_WaitKeyOn(~(1 << 1));
+							PIN_Control_WaitKey(PIN_WAIT_ON, ~(1 << 1));
 							VoiceNum ++;
 							//離されるまで待つ
 							while(PIN_Control_GetKey() & (1 << 1));
 							//完全に離されるまで待つ
-							PIN_Control_WaitKeyOff(~(1 << 1));
+							PIN_Control_WaitKey(PIN_WAIT_ON, ~(1 << 1));
 						}
 					}
 					//完全にキー押下が解除されるまで待つ
-					PIN_Control_WaitKeyOff(0);
+					PIN_Control_WaitKey(PIN_WAIT_OFF, 0);
 					//BTN1 が押されなかった場合は演奏停止するだけで終了
 					PIN_Control_Key = 0;
 					if (VoiceNum > 0) {
@@ -200,7 +202,7 @@ int main(void)
 			case _PLAYMODE_ALL:
 				//内蔵データを順に再生するモード========================
 				//完全にキー押下が解除されるまで待つ
-				PIN_Control_WaitKeyOff(0);
+				PIN_Control_WaitKey(PIN_WAIT_OFF, 0);
 				//BTN0 が押された場合は EEPROM を逆に再生する
 				if (PIN_Control_Key == (1<<0)) {
 					PIN_Control_Key = 0;
@@ -219,11 +221,12 @@ int main(void)
 					PIN_Control_Key = 0;
 				}
 				break;
+#endif
 			case _PLAYMODE_SPLIT:
 			default:	//指定がない場合も同様に扱う
 				//内蔵データを MMLと PCM に分けて再生するモード=========
 				//完全にキー押下が解除されるまで待つ
-				PIN_Control_WaitKeyOff(0);
+				PIN_Control_WaitKey(PIN_WAIT_OFF, 0);
 				//BTN0 が押された場合は PCM を順に再生する
 				if (PIN_Control_Key == (1<<0) && EEPROM_Files[PWM_PCMPLAY_PCM] > 0) {
 					PIN_Control_Key = 0;
@@ -245,7 +248,7 @@ int main(void)
 				break;
 		}
 		//完全にキー押下が解除されるまで待つ
-		PIN_Control_WaitKeyOff(0);
+		PIN_Control_WaitKey(PIN_WAIT_OFF, 0);
 	}
 }
 

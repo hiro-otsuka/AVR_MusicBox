@@ -23,6 +23,7 @@
  *  2017/01/29 新規作成(Hiro OTSUKA)
  *  2017/02/17 構成変更(Hiro OTSUKA) EEPROMからのMML再生およびWAVとの自動判別に対応
  *                                  音色の選択機能を追加
+ *  2017/05/19 構成変更(Hiro OTSUKA) コードサイズ削減を実施
  *
  */
 
@@ -85,7 +86,9 @@ void PWM_PCM_MB_Init();
 
 //楽譜情報設定
 //	引数：楽譜番号, 初期化用コールバック関数
+#ifdef MUSIC_SCORES
 void PWM_PCM_MB_MEM_SetScore(uint8_t , void (*)());
+#endif
 
 //チャンネル情報設定
 //	引数：チャンネル番号, 楽譜アドレス, 楽譜数(!=バイト数)
@@ -93,7 +96,9 @@ void PWM_PCM_MB_MEM_SetScoreChannel(uint8_t , const uint16_t* , uint16_t );
 
 //オルゴールモジュールの再生開始（C_ENDまで再生すると終了） メモリ版
 //	引数：楽譜番号
+#ifdef MUSIC_SCORES
 void PWM_PCM_MB_MEM_Play(uint8_t );
+#endif
 
 //オルゴールモジュールの再生開始（C_ENDまで再生すると終了） EEOROM版
 //	引数：開始アドレス

@@ -42,6 +42,8 @@
  *  2017/04/09 構成変更(Hiro OTSUKA) 初期化処理を整理し、待ち時間設定を可変に
  *  2017/04/22 構成変更(Hiro OTSUKA) ピンのPU要否をパラメータで指定できるよう変更
  *  2017/05/13 機能変更(Hiro OTSUKA) ピンの設定を実行時に指定できるよう変更
+ *  2017/05/19 機能追加(Hiro OTSUKA) ピンの設定に、余りピン処理のための無効化フラグを追加
+ *  2017/05/19 構成変更(Hiro OTSUKA) コードサイズ削減を実施
  *
  */
 
@@ -60,7 +62,11 @@
 #define PIN_SETBIT_BTN	0	// 1=BTN / 0=LED
 #define PIN_SETBIT_NOPU	1	// 1="NO"PullUp / 0=PullUP
 #define PIN_SETBIT_INT	2	// 1=Interrupt / 0="NO"Interrupt
-#define PIN_SETBIT_DEF	0b11111000	//デフォルトはすべて 1
+#define PIN_SETBIT_ENBL	3	// 1=Enable / 0=Disable
+#define PIN_SETBIT_DEF	0b11110000	//デフォルトはすべて 1
+
+#define PIN_WAIT_OFF	0
+#define PIN_WAIT_ON		1
 
 //マイコン別定義(対応マイコンを増やす場合は編集が必要)
 // ATTiny85系 -----------------
@@ -230,13 +236,9 @@ void PIN_Control_SetIO(uint8_t, uint8_t);
 //	引数：ボタン安定までの待ち時間（ms）
 void PIN_Control_SetWait(uint8_t);
 
-//BTNがすべて離されるのを待つ
-//	引数：対象マスク 0=Wait（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
-void PIN_Control_WaitKeyOff(uint8_t );
-
-//BTNがすべて押されるのを待つ
-//	引数：対象マスク 0=Wait（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
-void PIN_Control_WaitKeyOn(uint8_t );
+//BTNがすべて離される／押されるのを待つ
+//	引数：モード（0=OFF待ち／1=ON待ち）、対象マスク 0=Wait（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
+void PIN_Control_WaitKey(uint8_t, uint8_t );
 
 //BTNのその瞬間の押下状態を調べる
 //	戻値：BTNの押下状態（BTN0 が 1ビット目, BTN1 が 2ビット目 ...）
@@ -249,5 +251,8 @@ void PIN_Control_Playing(uint8_t);
 //LEDのON/OFF制御(ピンが出力設定の場合)
 //	引数：PIN番号、0=OFF/1=ON
 void PIN_Control_SetLED(uint8_t, uint8_t);
+
+//LEDの全クリア（初期設定に戻す）
+void PIN_Control_ClearLED();
 
 #endif /* PIN_Control_H_ */
