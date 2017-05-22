@@ -19,6 +19,7 @@
  *  2017/04/01 AVR_MB の機能変更にあわせ、複数の EEPROM をまとめて扱うよう機能変更
  *  2017/04/22 ATTiny85 の EEPROM 書き込み機能を追加
  *  2017/05/13 チップ間切り替え時間の変更
+ *  2017/05/22 GUI簡略化のため読み込み時の行末に ';' を追加
  *
  */
 
@@ -446,7 +447,8 @@ void EEPROM_readHEX(uint32_t readlen) {
     for (int i = 0; i < cols; i ++) {
       HexText_write(EEPROM_data(), 2);
     }
-    Serial.println(INF_NULL);
+//    Serial.println(INF_NULL);
+    Serial.println(";");
     readlen -= cols;
   }
   Serial.println(":");
@@ -771,7 +773,7 @@ void loop() {
   if (CmdEnable != 0) {
     Serial.println(INF_NULL);
     Serial.println("# ----------------------------------------");
-    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.3.1a");
+    Serial.println("# USB-Serial AVR MB Reader/Writer Ver.3.2");
     Serial.println("#                           By Hiro OTSUKA");
     Serial.println("# ----------------------------------------");
     Serial.print("'++ R/W Addr=[");
@@ -789,7 +791,7 @@ void loop() {
     case 'V':
       Serial.println(inByte);
       CmdEnable = 1;
-      Serial.println(":AVR MB R/W Ver3.1a");
+      Serial.println(":AVR MB R/W Ver3.2");
       break;
     case 'h':
     case 'H':
